@@ -1,0 +1,15 @@
+# Windows paths
+#: C:\foo\bar.py:12
+msgid "Windows path"
+msgstr "Windows path"
+
+#. Test for empty comment lines
+#. 
+#,
+#: main.c:117
+msgid "Override the default prgname"
+msgstr "Override the default prgname"
+
+#: Balloon-Fills,BitmapFillStyle>>addFillStyleMenuItems:hand:from:
+msgid "choose new graphic"
+msgstr "escolher novo gráfico"

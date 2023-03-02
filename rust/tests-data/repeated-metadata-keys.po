@@ -1,0 +1,7 @@
+msgid ""
+msgstr ""
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Content-Transfer-Encoding: 4bit\n"
+"MIME-Version: 1.0\n"
+"MIME-Version: 2.2\n"

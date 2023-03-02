@@ -1,0 +1,16 @@
+[package]
+name = "rspolib"
+version = "0.0.1"
+edition = "2021"
+
+[lib]
+name = "rspolib"
+path = "src/lib.rs"
+
+[dependencies]
+unicode-linebreak = "0.1.1"
+unicode-width = "0.1.10"
+phf = { version = "0.11.1", features = ["macros"] }
+unicode-segmentation = "1.10.1"
+natord = "1.0.9"
+snafu = "0.7.4"

@@ -1,0 +1,18 @@
+# 2 translated and 3 untranslated entries
+msgid ""
+msgstr ""
+
+msgid "msgid 1"
+msgstr ""
+
+msgid "msgid 2"
+msgstr "msgstr 2"
+
+msgid "msgid 3"
+msgstr ""
+
+msgid "msgid 4"
+msgstr "msgstr 4"
+
+msgid "msgid 5"
+msgstr ""

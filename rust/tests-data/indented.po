@@ -1,0 +1,28 @@
+#
+msgid ""
+msgstr ""
+
+# Added for previous msgid/msgid_plural/msgctxt testing
+# Tokens are separated by some tabs and a single space.
+#|		 msgctxt		 "@previous_context"
+#|		 msgid			 "previous untranslated entry"
+#|		 msgid_plural	 "previous untranslated entry plural"
+msgctxt		 "@context"
+msgid		 "Some msgid"
+msgstr		 "Some msgstr"
+
+# Same thing with plurals.
+# Each keyword is followed by some tabs and a single space.
+#, python-format
+msgid			 ""
+				 "Please enter valid %(self)s IDs. "
+				 "The value %(value)r is invalid."
+msgid_plural	 ""
+				 "Please enter valid %(self)s IDs. "
+				 "The values %(value)r are invalid."
+msgstr[0]		 ""
+				 "Por favor, introduzca IDs de %(self)s válidos. "
+				 "El valor %(value)r no es válido."
+msgstr[1]		 ""
+				 "Por favor, introduzca IDs de %(self)s válidos. "
+				 "Los valores %(value)r no son válidos."

@@ -1,0 +1,9 @@
+#
+msgid ""
+msgstr ""
+
+#| msgctxt "@previous_context"
+#| msgid "previous untranslated entry"
+msgctxt "@context5"
+msgid "Some msgid"
+msgstr ""

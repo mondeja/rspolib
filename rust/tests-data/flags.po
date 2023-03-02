@@ -1,0 +1,29 @@
+#, python-format, fuzzy
+msgid "msgid 1"
+msgstr "msgstr 1"
+
+#, fuzzy
+msgid "msgid 2"
+msgstr "msgstr 2"
+
+#, python-format
+msgid "msgid 3"
+msgstr "msgstr 3"
+
+#, 1, 2, 3, 4, 5, 6, 7
+msgid "msgid 4"
+msgstr "msgstr 4"
+
+#,
+#,
+#, a
+#, b
+#, c, d, e
+#, f
+#,
+#, g
+msgid "msgid 5"
+msgstr "msgstr 5"
+
+msgid "msgid 6"
+msgstr "msgstr 6"

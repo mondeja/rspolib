@@ -1,0 +1,18 @@
+#
+msgid ""
+msgstr ""
+
+#: ../addressbook/addressbook.error.xml.h:1
+msgid "This address book could not be opened."
+msgstr "No s'ha pogut obrir aquesta llibreta d'adreces."
+
+#, fuzzy
+#~| msgid ""
+#~| "Error on %s\n"
+#~| "%s"
+#~ msgid ""
+#~ "Error on %s: %s\n"
+#~ "%s"
+#~ msgstr ""
+#~ "S'ha produït un error en %s:\n"
+#~ "%s"

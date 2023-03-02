@@ -1,0 +1,9 @@
+#
+msgid ""
+msgstr ""
+
+msgid "msgid 1"
+msgstr "msgstr 1"
+
+msgid "msgid 2"
+msgstr "msgstr 2"

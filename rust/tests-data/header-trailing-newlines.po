@@ -1,0 +1,9 @@
+# This file is distributed under the same license
+# 
+# Translators:
+# Foo bar, Year
+#
+# Baz, YEAR
+#
+#
+#

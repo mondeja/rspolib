@@ -1,0 +1,6 @@
+#. This is a generated/extracted comment
+msgid ""
+"Enter a valid “slug” consisting of letters, numbers, underscores or hyphens."
+msgstr ""
+"Introduzca un 'slug' válido, consistente en letras, números, guiones bajos o "
+"medios."

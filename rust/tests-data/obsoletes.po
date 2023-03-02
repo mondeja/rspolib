@@ -1,0 +1,12 @@
+#
+msgid ""
+msgstr ""
+
+msgid "hello 1"
+msgstr "hola 1"
+
+#~ msgid "hello 2"
+#~ msgstr "hola 2"
+
+#~ msgid "hello 3"
+#~ msgstr "hola 3"

@@ -1,0 +1,405 @@
+use std::collections::HashMap;
+use std::fmt;
+use std::fs::File;
+use std::io::Write;
+
+use crate::bitwise::{as_u8_array_be, as_u8_array_le};
+use crate::entry::{
+    mo_metadata_entry_to_string, MOEntry, MsgidEotMsgctxt,
+};
+use crate::errors::IOError;
+use crate::file::{
+    metadata_hashmap_to_msgstr, pofile::POFile, AsBytes, Options,
+    Save, SaveAsMOFile, SaveAsPOFile,
+};
+use crate::moparser::{MOFileParser, MAGIC, MAGIC_SWAPPED};
+
+pub fn mofile<'a, Opt>(options: Opt) -> Result<MOFile<'a>, IOError>
+where
+    Opt: Into<Options<'a>>,
+{
+    let mut parser = MOFileParser::new(options.into());
+    parser.parse()?;
+    Ok(parser.file)
+}
+
+pub struct MOFile<'a> {
+    pub magic_number: Option<u32>,
+    pub version: Option<u32>,
+    pub metadata: HashMap<String, String>,
+    pub entries: Vec<MOEntry>,
+    pub options: Options<'a>,
+}
+
+impl<'a> MOFile<'a> {
+    pub fn new(options: Options<'a>) -> Self {
+        Self {
+            options,
+            magic_number: None,
+            version: None,
+            metadata: HashMap::new(),
+            entries: Vec::new(),
+        }
+    }
+
+    pub fn metadata_as_entry(&self) -> MOEntry {
+        let mut entry =
+            MOEntry::new("".to_string(), None, None, None, None);
+        if !self.metadata.is_empty() {
+            entry.msgstr =
+                Some(metadata_hashmap_to_msgstr(&self.metadata))
+        }
+
+        entry
+    }
+
+    pub fn as_bytes_with(
+        &self,
+        magic_number: u32,
+        revision_number: u32,
+    ) -> Vec<u8> {
+        let metadata_entry = self.metadata_as_entry();
+
+        // Select byte order based on magic number
+        let bytes_reader: fn(u32) -> [u8; 4] = match magic_number {
+            MAGIC_SWAPPED => as_u8_array_be,
+            _ => as_u8_array_le,
+        };
+
+        let mut entries: Vec<&MOEntry> = vec![&metadata_entry];
+        entries.extend(&self.entries);
+        entries.sort_unstable_by(|a, b| {
+            a.msgid_eot_msgctxt().cmp(&b.msgid_eot_msgctxt())
+        });
+        let entries_length = entries.len();
+
+        let mut offsets: Vec<(usize, usize, usize, usize)> = vec![];
+
+        let mut ids = "".to_string();
+        let mut strs = "".to_string();
+        for e in entries {
+            // For each string, we need size and file offset. Each
+            // string is NUL terminated but the NUL does not count
+            // into the size.
+            let mut msgid = "".to_string();
+            let mut msgstr = "".to_string();
+
+            if let Some(msgctxt) = &e.msgctxt {
+                msgid.push_str(msgctxt);
+                msgid.push('\u{0004}');
+            }
+
+            if let Some(msgid_plural) = &e.msgid_plural {
+                // handle msgid_plural
+                msgid.push_str(&e.msgid);
+                msgid.push('\u{0000}');
+                msgid.push_str(msgid_plural);
+
+                // handle msgstr_plural
+                let msgstr_plural = e.msgstr_plural.as_ref().unwrap();
+
+                let mut keys: Vec<&String> =
+                    msgstr_plural.keys().collect();
+                keys.sort();
+                let keys_length = keys.len();
+
+                for (i, k) in keys.iter().enumerate() {
+                    msgstr.push_str(msgstr_plural.get(*k).unwrap());
+                    if i < keys_length - 1 {
+                        msgstr.push('\u{0000}');
+                    }
+                }
+            } else {
+                msgid.push_str(&e.msgid);
+                if let Some(m) = &e.msgstr {
+                    msgstr.push_str(m);
+                }
+            }
+
+            offsets.push((
+                ids.len(),
+                msgid.len(),
+                strs.len(),
+                msgstr.len(),
+            ));
+
+            ids.push_str(&msgid);
+            ids.push('\u{0}');
+            strs.push_str(&msgstr);
+            strs.push('\u{0}');
+        }
+
+        // The header is 7 32-bit unsigned integers.
+        let keystart = 7 * 4 + 16 * entries_length;
+        // and the values start after the keys
+        let valuestart = keystart + ids.len();
+
+        // The string table first has the list of keys, then the list of values.
+        // Each entry has first the size of the string, then the file offset.
+        let mut koffsets: Vec<(usize, usize)> = vec![];
+        let mut voffsets: Vec<(usize, usize)> = vec![];
+        for (o1, l1, o2, l2) in offsets {
+            koffsets.push((l1, o1 + keystart));
+            voffsets.push((l2, o2 + valuestart));
+        }
+
+        let mut final_offsets: Vec<u8> = vec![];
+        for (l, o) in koffsets {
+            final_offsets.extend(bytes_reader(l as u32));
+            final_offsets.extend(bytes_reader(o as u32));
+        }
+        for (l, o) in voffsets {
+            final_offsets.extend(bytes_reader(l as u32));
+            final_offsets.extend(bytes_reader(o as u32));
+        }
+
+        let mut output: Vec<u8> = vec![];
+        // magic number
+        output.extend(bytes_reader(MAGIC));
+        // version
+        output.extend(bytes_reader(revision_number));
+        // number of entries
+        output.extend(bytes_reader(entries_length as u32));
+        // start of key index
+        output.extend(bytes_reader(7 * 4));
+        // start of value index
+        output.extend(bytes_reader(
+            7 * 4 + (entries_length as u32) * 8,
+        ));
+        // size and offset of hash table, we don't use hash tables
+        output.extend([0, 0, 0, 0]);
+        output.extend(bytes_reader(keystart as u32));
+
+        output.extend(final_offsets);
+        output.extend(ids.as_bytes());
+        output.extend(strs.as_bytes());
+        output
+    }
+}
+
+impl<'a> fmt::Display for MOFile<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut ret =
+            mo_metadata_entry_to_string(&self.metadata_as_entry());
+
+        ret.push('\n');
+        for entry in &self.entries {
+            ret.push_str(&entry.to_string());
+            ret.push('\n');
+        }
+        ret.remove(ret.len() - 1);
+        write!(f, "{}", ret)
+    }
+}
+
+impl<'a> SaveAsPOFile for MOFile<'a> {}
+
+impl<'a> Save for MOFile<'a> {
+    fn save(&self, path: &str) {
+        let mut file = File::create(path).unwrap();
+        file.write_all(self.as_bytes().as_slice()).ok();
+    }
+}
+
+impl<'a> SaveAsMOFile for MOFile<'a> {
+    fn save_as_mofile(&self, path: &str) {
+        self.save(path);
+    }
+}
+
+impl<'a> AsBytes for MOFile<'a> {
+    fn as_bytes(&self) -> Vec<u8> {
+        self.as_bytes_with(MAGIC, 0)
+    }
+
+    fn as_bytes_le(&self) -> Vec<u8> {
+        self.as_bytes_with(MAGIC, 0)
+    }
+
+    fn as_bytes_be(&self) -> Vec<u8> {
+        self.as_bytes_with(MAGIC_SWAPPED, 0)
+    }
+}
+
+impl<'a> From<&POFile<'a>> for MOFile<'a> {
+    fn from(file: &POFile<'a>) -> MOFile<'a> {
+        let mut new_file = MOFile::new(file.options.clone());
+        new_file.metadata = file.metadata.clone();
+        new_file.entries = file
+            .translated_entries()
+            .iter()
+            .map(|e| MOEntry::from(*e))
+            .collect();
+        new_file
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::bitwise::as_u32_le;
+    use std::env;
+    use std::fs;
+    use std::io::Read;
+    use std::path::Path;
+    use unicode_segmentation::UnicodeSegmentation;
+
+    #[test]
+    fn mofile_test() {
+        let path = "tests-data/all.mo";
+        let file = mofile(path).unwrap();
+
+        assert_eq!(file.entries.len(), 7);
+    }
+
+    #[test]
+    fn mofile_metadata_as_entry() {
+        // File with metadata
+        let path = "tests-data/all.mo";
+        let file = mofile(path).unwrap();
+        let entry = file.metadata_as_entry();
+
+        let msgstr = entry.msgstr.unwrap();
+        assert_eq!(entry.msgid, "");
+        assert_eq!(msgstr.lines().count(), 10);
+
+        // File without metadata
+        let path = "tests-data/empty-metadata.mo";
+        let file = mofile(path).unwrap();
+        let entry = file.metadata_as_entry();
+
+        assert_eq!(entry.msgid, "");
+        assert_eq!(entry.msgstr.is_none(), true);
+    }
+
+    #[test]
+    fn mofile_to_string() {
+        let mo_path = "tests-data/all.mo";
+        let file = mofile(mo_path).unwrap();
+
+        let file_as_string = file.to_string();
+
+        for line in file_as_string.lines() {
+            let n_chars = line.graphemes(true).count();
+            assert!(n_chars <= file.options.wrapwidth + 2);
+        }
+    }
+
+    #[test]
+    fn mofile_as_bytes() {
+        // generated by msgfmt
+        let path = "tests-data/all.mo";
+        let file = mofile(path).unwrap();
+        let file_as_bytes = file.as_bytes();
+
+        // generated by polib
+        let polib_path = "tests-data/all-polib.mo";
+        let polib_file = mofile(polib_path).unwrap();
+        let polib_file_as_bytes = polib_file.as_bytes();
+
+        // The same number of bytes
+        assert_eq!(file_as_bytes.len(), polib_file_as_bytes.len());
+        // and the same bytes
+        for (rspolib_byte, polib_byte) in
+            file_as_bytes.iter().zip(polib_file_as_bytes.iter())
+        {
+            assert_eq!(rspolib_byte, polib_byte);
+        }
+
+        // the implementation differs from msgfmt
+        let buffer: Vec<u8> = fs::read(path).unwrap();
+        assert_ne!(file_as_bytes, buffer);
+        assert_ne!(polib_file_as_bytes, buffer);
+        // msgfmt generates more bytes
+        assert!(file_as_bytes.len() < buffer.len());
+        assert!(polib_file_as_bytes.len() < buffer.len());
+    }
+
+    #[test]
+    fn mofile_save_as_pofile() {
+        let tmpdir = env::temp_dir();
+
+        let path = "tests-data/all.mo";
+        let file = mofile(path).unwrap();
+        let file_as_string = file.to_string();
+
+        let tmp_path = Path::new(&tmpdir).join("all.po");
+        let tmp_path_str = tmp_path.to_str().unwrap();
+        file.save_as_pofile(tmp_path_str);
+
+        assert_eq!(
+            file_as_string,
+            fs::read_to_string(tmp_path_str).unwrap()
+        );
+        fs::remove_file(tmp_path_str).unwrap();
+    }
+
+    fn mofile_save_test(
+        basename: &str,
+        read_bytes_from_file: bool,
+        save_method_name: &str,
+    ) {
+        let tmpdir = env::temp_dir();
+
+        let path = "tests-data/all.mo";
+        let file = mofile(path).unwrap();
+
+        let tmp_path =
+            Path::new(&tmpdir).join(format!("{}.mo", basename));
+        let tmp_path_str = tmp_path.to_str().unwrap();
+        if save_method_name == "save" {
+            file.save(tmp_path_str);
+        } else {
+            file.save_as_mofile(tmp_path_str);
+        }
+
+        // exists
+        assert!(tmp_path.is_file());
+
+        let file_bytes = match read_bytes_from_file {
+            true => fs::read(tmp_path_str).unwrap(),
+            false => file.as_bytes(),
+        };
+        let mut file_bytes = file_bytes.as_slice();
+        let mut buf: [u8; 4] = [0, 0, 0, 0];
+
+        // has correct magic number
+        file_bytes.read_exact(&mut buf).unwrap();
+        let magic_number = as_u32_le(&buf);
+        assert_eq!(magic_number, MAGIC);
+
+        // has correct revision number
+        file_bytes.read_exact(&mut buf).unwrap();
+        let revision_number = as_u32_le(&buf);
+        assert_eq!(revision_number, 0);
+
+        // has correct number of entries
+        file_bytes.read_exact(&mut buf).unwrap();
+        let number_of_entries = as_u32_le(&buf);
+        assert_eq!(
+            number_of_entries,
+            // +1 here because includes the header entry
+            file.entries.len() as u32 + 1,
+        );
+    }
+
+    #[test]
+    fn mofile_save_as_mofile() {
+        mofile_save_test(
+            "mofile_save_as_mofile-file",
+            true,
+            "save_as_mofile",
+        );
+        mofile_save_test(
+            "mofile_save_as_mofile-struct",
+            false,
+            "save_as_mofile",
+        );
+    }
+
+    #[test]
+    fn mofile_save() {
+        mofile_save_test("mofile_save-file", true, "save");
+        mofile_save_test("mofile_save-struct", false, "save");
+    }
+}

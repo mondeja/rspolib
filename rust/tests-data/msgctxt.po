@@ -1,0 +1,12 @@
+msgctxt "abbrev. month"
+msgid "Jan."
+msgstr "Ene."
+
+#, fuzzy
+msgctxt "abbrev. month"
+msgid "J."
+msgstr "E."
+
+msgctxt "to date"
+msgid "To date"
+msgstr "Hasta la fecha"
