@@ -1,5 +1,7 @@
 # rspolib
 
+[![pypi](https://img.shields.io/pypi/v/rspolib?logo=pypi&logoColor=white)](https://pypi.org/project/rspolib/) [![pyversions](https://img.shields.io/pypi/pyversions/rspolib?logo=python&logoColor=white)](https://pypi.org/project/rspolib/)
+
 Python bindings for the Rust crate [rspolib].
 
 ## Install
@@ -31,5 +33,4 @@ pytest -svv
 ```
 
 [rspolib]: https://github.com/mondeja/rspolib
-
-[polib]:
+[polib]: https://github.com/izimobil/polib

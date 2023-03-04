@@ -16,6 +16,13 @@ cd rust
 cargo test
 ```
 
+### Open documentation
+
+```bash
+cd rust
+cargo doc --open
+```
+
 ### Code coverage
 
 ```bash
