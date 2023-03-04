@@ -58,7 +58,7 @@ impl fmt::Display for MaybeFilename {
 /// let magic_number = 800;
 /// let data = vec![magic_number];
 /// let content = create_binary_content(&data, true);
-/// 
+///
 /// assert_eq!(
 ///     mofile(content),
 ///     Err(IOError::IncorrectMagicNumber {
@@ -78,7 +78,7 @@ pub enum IOError {
     /// file as the magic number are the four first bytes of MO files.
     #[snafu(display("Invalid mo file, error reading magic number"))]
     ErrorReadingMagicNumber {},
-    
+
     /// The magic number read from the MO file is not a valid one.
     ///
     /// The valid numbers are `0x950412de` (little endian)
@@ -139,7 +139,7 @@ pub enum IOError {
 /// use rspolib::{pofile, errors::{SyntaxError, MaybeFilename}};
 ///
 /// let content = r#"#
-/// msgid "Hello" 
+/// msgid "Hello"
 /// msgstr "Ho"la"
 ///"#;
 ///

@@ -1,13 +1,13 @@
 use pyo3::prelude::*;
 
 mod pymoentry;
-mod pypoentry;
 mod pymofile;
+mod pypoentry;
 mod pypofile;
 
 use crate::pymoentry::PyMOEntry;
-use crate::pypoentry::PyPOEntry;
 use crate::pymofile::{py_mofile, PyMOFile};
+use crate::pypoentry::PyPOEntry;
 use crate::pypofile::{py_pofile, PyPOFile};
 
 #[pymodule]

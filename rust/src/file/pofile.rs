@@ -39,7 +39,7 @@ use crate::traits::Merge;
 /// let content = r#"#
 /// msgid ""
 /// msgstr ""
-/// 
+///
 /// msgid "A message"
 /// msgstr "Un mensaje"
 /// "#;
@@ -61,7 +61,7 @@ use crate::traits::Merge;
 ///
 /// ```rust
 /// use rspolib::pofile;
-/// 
+///
 /// // Wrap width
 /// let file = pofile(("tests-data/all.po", 75)).unwrap();
 /// ```
@@ -82,9 +82,7 @@ use crate::traits::Merge;
 /// let opts = POFileOptions::from(("tests-data/all.po", 75));
 /// let file = pofile(opts).unwrap();
 /// ```
-pub fn pofile<'a, Opt>(
-    options: Opt,
-) -> Result<POFile, SyntaxError>
+pub fn pofile<Opt>(options: Opt) -> Result<POFile, SyntaxError>
 where
     Opt: Into<FileOptions>,
 {
@@ -140,7 +138,8 @@ impl POFile {
     ) {
         self.entries.retain(|e| {
             e.msgid != msgid
-            || e.msgctxt.as_ref().unwrap_or(&"".to_string()) != msgctxt
+                || e.msgctxt.as_ref().unwrap_or(&"".to_string())
+                    != msgctxt
         });
     }
 
@@ -225,7 +224,7 @@ impl POFile {
     /// This method is not really useful because the
     /// ``to_string()`` version will not be guranteed to be
     /// correct.
-    /// 
+    ///
     /// If you want to manipulate the metadata, change
     /// the content of the field `metadata` in the file.
     ///
@@ -332,7 +331,7 @@ impl Merge for POFile {
     ///
     /// Recursively calls `merge` on each entry if they are found
     /// in the current file searching by msgid and msgctxt. If not
-    /// found, generates a new entry. 
+    /// found, generates a new entry.
     ///
     /// This method is commonly used to merge a POT reference file
     /// with a PO file.
@@ -367,7 +366,7 @@ impl Merge for POFile {
 
 impl AsBytes for POFile {
     /// Return the PO file content as a bytes vector of the MO file version
-    /// 
+    ///
     /// The MO file is encoded with little
     /// endian magic number and revision number 0
     ///
@@ -385,14 +384,14 @@ impl AsBytes for POFile {
     }
 
     /// Return the PO file content as a bytes vector of the MO file version
-    /// 
+    ///
     /// Just an alias for [POFile::as_bytes], for consistency with [MOFile].
     fn as_bytes_le(&self) -> Vec<u8> {
         MOFile::from(self).as_bytes_with(MAGIC, 0)
     }
 
     /// Return the PO file content as a bytes vector of
-    /// the MO file version with big endianess 
+    /// the MO file version with big endianess
     fn as_bytes_be(&self) -> Vec<u8> {
         MOFile::from(self).as_bytes_with(MAGIC_SWAPPED, 0)
     }
@@ -651,12 +650,10 @@ msgstr \"\"
 
     #[test]
     fn remove() {
-        let mut entry_1 = POEntry::new(0);
-        entry_1.msgid = "msgid 1".to_string();
+        let mut entry_1 = POEntry::from("msgid 1");
         entry_1.msgstr = Some("msgstr 1".to_string());
 
-        let mut entry_2 = POEntry::new(3);
-        entry_2.msgid = "msgid 2".to_string();
+        let mut entry_2 = POEntry::from("msgid 2");
         entry_2.msgstr = Some("msgstr 2".to_string());
 
         let mut file = POFile::from(vec![&entry_1, &entry_2]);
@@ -681,10 +678,7 @@ msgstr \"\"
         entry_2.msgid = "msgid 1".to_string();
         file.entries.push(entry_2);
         assert_eq!(file.entries.len(), 2);
-        file.remove_by_msgid_msgctxt(
-            "msgid 1",
-            "msgctxt 2",
-        );
+        file.remove_by_msgid_msgctxt("msgid 1", "msgctxt 2");
 
         assert_eq!(file.entries.len(), 1);
         assert_eq!(file.entries[0].msgid, "msgid 1");
@@ -708,7 +702,10 @@ msgstr \"\"
         assert_eq!(file.entries.len(), 2);
 
         // find by msgid
-        assert_eq!(file.find_by_msgid("msgid 2").unwrap().msgid, "msgid 2");
+        assert_eq!(
+            file.find_by_msgid("msgid 2").unwrap().msgid,
+            "msgid 2"
+        );
 
         // find by msgid and msgctxt
         entry_2.msgctxt = Some("msgctxt 2".to_string());
@@ -718,7 +715,9 @@ msgstr \"\"
         assert_eq!(
             file.find_by_msgid_msgctxt("msgid 1", "msgctxt 2")
                 .unwrap()
-                .msgstr.as_ref().unwrap(),
+                .msgstr
+                .as_ref()
+                .unwrap(),
             "msgstr 2",
         );
     }

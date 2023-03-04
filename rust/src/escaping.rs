@@ -21,10 +21,7 @@ pub fn escape(text: &str) -> String {
         .replace('"', r#"\""#)
 }
 
-fn unescape_characters(
-    text: &str,
-    characters: &[char],
-) -> String {
+fn unescape_characters(text: &str, characters: &[char]) -> String {
     let mut result: Vec<char> = Vec::new();
 
     let mut escaping = false;

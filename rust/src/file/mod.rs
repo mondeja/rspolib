@@ -81,7 +81,7 @@ pub trait AsBytes {
 pub struct FileOptions {
     /// Path or content to the file
     pub path_or_content: String,
-    /// Wrap width for the PO file, used when converted as a string 
+    /// Wrap width for the PO file, used when converted as a string
     pub wrapwidth: usize,
     /// Content as bytes, used by MO files when the content is passed as bytes
     pub byte_content: Option<Vec<u8>>,

@@ -2,8 +2,8 @@
 name = "py-rspolib"
 version = "0.0.1"
 edition = "2021"
+readme = "README.md"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
 name = "rspolib"
 crate-type = ["cdylib"]

@@ -97,16 +97,39 @@ impl MOFile {
         msgid: &str,
         msgctxt: &str,
     ) -> Option<&MOEntry> {
-        self.entries
-            .iter()
-            .find(|e| e.msgid == msgid && e.msgctxt == Some(msgctxt.to_string()))
+        self.entries.iter().find(|e| {
+            e.msgid == msgid && e.msgctxt == Some(msgctxt.to_string())
+        })
+    }
+
+    /// Remove an entry from the file
+    pub fn remove(&mut self, entry: &MOEntry) {
+        self.entries.retain(|e| e != entry);
+    }
+
+    /// Remove the first entry that has the same msgid
+    pub fn remove_by_msgid(&mut self, msgid: &str) {
+        self.entries.retain(|e| e.msgid != msgid);
+    }
+
+    /// Remove the first entry that has the same msgid and msgctxt
+    pub fn remove_by_msgid_msgctxt(
+        &mut self,
+        msgid: &str,
+        msgctxt: &str,
+    ) {
+        self.entries.retain(|e| {
+            e.msgid != msgid
+                || e.msgctxt.as_ref().unwrap_or(&"".to_string())
+                    != msgctxt
+        });
     }
 
     /// Returns the entry as a bytes vector
     ///
     /// Specify the magic number and the revision number
     /// of the generated MO version of the file.
-    /// 
+    ///
     /// This method does not check the validity of the values
     /// `magic_number` and `revision_version` to allow the
     /// experimental developing of other revision of MO files,
@@ -311,6 +334,16 @@ impl From<&POFile> for MOFile {
     }
 }
 
+impl From<Vec<&MOEntry>> for MOFile {
+    fn from(entries: Vec<&MOEntry>) -> Self {
+        let mut file = MOFile::new("".into());
+        for entry in entries {
+            file.entries.push(entry.clone());
+        }
+        file
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -415,7 +448,7 @@ mod tests {
         read_bytes_from_file: bool,
         save_method_name: &str,
     ) {
-        let tmpdir ="tests-data/tests";
+        let tmpdir = "tests-data/tests";
 
         let path = "tests-data/all.mo";
         let file = mofile(path).unwrap();
@@ -477,5 +510,77 @@ mod tests {
     fn mofile_save() {
         mofile_save_test("mofile_save-file", true, "save");
         mofile_save_test("mofile_save-struct", false, "save");
+    }
+
+    #[test]
+    fn remove() {
+        let mut entry_1 = MOEntry::from("msgid 1");
+        entry_1.msgstr = Some("msgstr 1".to_string());
+
+        let mut entry_2 = MOEntry::from("msgid 2");
+        entry_2.msgstr = Some("msgstr 2".to_string());
+
+        let mut file = MOFile::from(vec![&entry_1, &entry_2]);
+        assert_eq!(file.entries.len(), 2);
+
+        // remove by entry
+        file.remove(&entry_1);
+
+        assert_eq!(file.entries.len(), 1);
+        assert_eq!(file.entries[0].msgid, "msgid 2");
+
+        file.entries.push(entry_1);
+        assert_eq!(file.entries.len(), 2);
+
+        // remove by msgid
+        file.remove_by_msgid("msgid 2");
+        assert_eq!(file.entries.len(), 1);
+        assert_eq!(file.entries[0].msgid, "msgid 1");
+
+        // remove by msgid and msgctxt
+        entry_2.msgctxt = Some("msgctxt 2".to_string());
+        entry_2.msgid = "msgid 1".to_string();
+        file.entries.push(entry_2);
+        assert_eq!(file.entries.len(), 2);
+        file.remove_by_msgid_msgctxt("msgid 1", "msgctxt 2");
+
+        assert_eq!(file.entries.len(), 1);
+        assert_eq!(file.entries[0].msgid, "msgid 1");
+        assert_eq!(
+            file.entries[0].msgstr.as_ref().unwrap(),
+            "msgstr 1",
+        );
+    }
+
+    #[test]
+    fn find() {
+        let mut entry_1 = MOEntry::from("msgid 1");
+        entry_1.msgstr = Some("msgstr 1".to_string());
+
+        let mut entry_2 = MOEntry::from("msgid 2");
+        entry_2.msgstr = Some("msgstr 2".to_string());
+
+        let mut file = MOFile::from(vec![&entry_1, &entry_2]);
+        assert_eq!(file.entries.len(), 2);
+
+        // find by msgid
+        assert_eq!(
+            file.find_by_msgid("msgid 2").unwrap().msgid,
+            "msgid 2"
+        );
+
+        // find by msgid and msgctxt
+        entry_2.msgctxt = Some("msgctxt 2".to_string());
+        entry_2.msgid = "msgid 1".to_string();
+        file.entries.push(entry_2);
+        assert_eq!(file.entries.len(), 3);
+        assert_eq!(
+            file.find_by_msgid_msgctxt("msgid 1", "msgctxt 2")
+                .unwrap()
+                .msgstr
+                .as_ref()
+                .unwrap(),
+            "msgstr 2",
+        );
     }
 }

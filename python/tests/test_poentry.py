@@ -1,4 +1,3 @@
-
 def test_poentry_constructor(runner):
     def msgid_msgstr_kwargs(polib):
         entry = polib.POEntry(
@@ -7,7 +6,7 @@ def test_poentry_constructor(runner):
         )
         assert entry.msgid == "msgid 1"
         assert entry.msgstr == "msgstr 1"
-    
+
     def get_set_all(polib):
         entry = polib.POEntry()
         entry.msgid = "msgid 1"
@@ -35,10 +34,13 @@ def test_poentry_constructor(runner):
         assert entry.previous_msgid == "previous_msgid 1"
         assert entry.previous_msgid_plural == "previous_msgid_plural 1"
 
-    runner.run([
-        msgid_msgstr_kwargs,
-        get_set_all,
-    ])
+    runner.run(
+        [
+            msgid_msgstr_kwargs,
+            get_set_all,
+        ]
+    )
+
 
 def test_methods(runner):
     def fuzzy(polib):
@@ -48,14 +50,14 @@ def test_methods(runner):
         assert entry.fuzzy
         entry.flags = []
         assert not entry.fuzzy
-    
+
     def to_string_with_wrapwidth(polib):
         entry = polib.POEntry(
             msgid="msgid 1 msgid 1 msgid 1",
             msgstr="msgstr 1 msgstr 1 msgstr 1",
         )
         assert entry.to_string_with_wrapwidth(8) == (
-            '''msgid ""
+            """msgid ""
 "msgid 1"
 " msgid 1"
 " msgid 1"
@@ -65,14 +67,17 @@ msgstr ""
 " msgstr"
 " 1"
 " msgstr 1"
-''')
+"""
+        )
 
-    runner.run([
-        fuzzy,
-    ])
+    runner.run(
+        [
+            fuzzy,
+        ]
+    )
     runner.run(
         {"polib": False},
         [
             to_string_with_wrapwidth,
-        ]
+        ],
     )

@@ -10,5 +10,6 @@
 //! - [AsBytes] trait to use the methods `as_bytes*` on POFile and MOFile.
 //! - [MsgidEotMsgctxt] trait to use the method `msgid_eot_msgctxt` on entries.
 pub use crate::{
-    AsBytes, Merge, Save, SaveAsMOFile, SaveAsPOFile, TranslatedEntry, MsgidEotMsgctxt,
+    AsBytes, Merge, MsgidEotMsgctxt, Save, SaveAsMOFile,
+    SaveAsPOFile, TranslatedEntry,
 };

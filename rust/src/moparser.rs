@@ -77,19 +77,18 @@ pub(crate) struct MOFileParser<'a> {
 impl MOFileParser<'_> {
     pub fn new<'a>(file_options: FileOptions) -> MOFileParser<'a> {
         let mut file = MOFile::new(file_options);
-        let fhandle: Box<dyn SeekRead> =
-            match Path::new(&file.options.path_or_content).is_file() {
-                true => Box::new(
-                    File::open(&file.options.path_or_content).unwrap(),
-                ),
-                false => Box::new(Cursor::new(
-                    file.options
-                        .byte_content
-                        .as_mut()
-                        .unwrap()
-                        .clone(),
-                )),
-            };
+        let fhandle: Box<dyn SeekRead> = match Path::new(
+            &file.options.path_or_content,
+        )
+        .is_file()
+        {
+            true => Box::new(
+                File::open(&file.options.path_or_content).unwrap(),
+            ),
+            false => Box::new(Cursor::new(
+                file.options.byte_content.as_mut().unwrap().clone(),
+            )),
+        };
 
         MOFileParser {
             fhandle,
@@ -339,11 +338,10 @@ impl MOFileParser<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs;
     use rspolib_testing::{
-        create_binary_content,
-        create_corrupted_binary_content,
+        create_binary_content, create_corrupted_binary_content,
     };
+    use std::fs;
 
     fn all_features_test(parser: &MOFileParser) {
         let po_path = "tests-data/all.po";

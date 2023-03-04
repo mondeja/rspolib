@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use pyo3::prelude::*;
 
-use rspolib::POEntry;
 use rspolib::prelude::*;
+use rspolib::POEntry;
 
 #[pyclass]
 #[pyo3(name = "POEntry")]
@@ -14,7 +14,6 @@ impl PyPOEntry {
         self.0.clone()
     }
 }
-
 
 #[pymethods]
 impl PyPOEntry {
@@ -29,11 +28,11 @@ impl PyPOEntry {
         )
     )]
     fn new(
-            msgid: String,
-            msgstr: Option<String>,
-            msgid_plural: Option<String>,
-            msgstr_plural: Option<HashMap<String, String>>,
-            msgctxt: Option<String>,
+        msgid: String,
+        msgstr: Option<String>,
+        msgid_plural: Option<String>,
+        msgstr_plural: Option<HashMap<String, String>>,
+        msgctxt: Option<String>,
     ) -> Self {
         let mut poentry = POEntry::new(0);
         poentry.msgid = msgid;
@@ -75,7 +74,10 @@ impl PyPOEntry {
     }
 
     #[setter]
-    fn set_msgid_plural(&mut self, msgid_plural: Option<String>) -> PyResult<()> {
+    fn set_msgid_plural(
+        &mut self,
+        msgid_plural: Option<String>,
+    ) -> PyResult<()> {
         self.0.msgid_plural = msgid_plural;
         Ok(())
     }
@@ -86,7 +88,10 @@ impl PyPOEntry {
     }
 
     #[setter]
-    fn set_msgstr_plural(&mut self, msgstr_plural: HashMap<String, String>) -> PyResult<()> {
+    fn set_msgstr_plural(
+        &mut self,
+        msgstr_plural: HashMap<String, String>,
+    ) -> PyResult<()> {
         self.0.msgstr_plural = msgstr_plural;
         Ok(())
     }
@@ -97,7 +102,10 @@ impl PyPOEntry {
     }
 
     #[setter]
-    fn set_msgctxt(&mut self, msgctxt: Option<String>) -> PyResult<()> {
+    fn set_msgctxt(
+        &mut self,
+        msgctxt: Option<String>,
+    ) -> PyResult<()> {
         self.0.msgctxt = msgctxt;
         Ok(())
     }
@@ -119,7 +127,10 @@ impl PyPOEntry {
     }
 
     #[setter]
-    fn set_comment(&mut self, comment: Option<String>) -> PyResult<()> {
+    fn set_comment(
+        &mut self,
+        comment: Option<String>,
+    ) -> PyResult<()> {
         self.0.comment = comment;
         Ok(())
     }
@@ -130,7 +141,10 @@ impl PyPOEntry {
     }
 
     #[setter]
-    fn set_tcomment(&mut self, tcomment: Option<String>) -> PyResult<()> {
+    fn set_tcomment(
+        &mut self,
+        tcomment: Option<String>,
+    ) -> PyResult<()> {
         self.0.tcomment = tcomment;
         Ok(())
     }
@@ -141,7 +155,10 @@ impl PyPOEntry {
     }
 
     #[setter]
-    fn set_occurrences(&mut self, occurrences: Vec<(String, String)>) -> PyResult<()> {
+    fn set_occurrences(
+        &mut self,
+        occurrences: Vec<(String, String)>,
+    ) -> PyResult<()> {
         self.0.occurrences = occurrences;
         Ok(())
     }
@@ -163,7 +180,10 @@ impl PyPOEntry {
     }
 
     #[setter]
-    fn set_previous_msgid(&mut self, previous_msgid: Option<String>) -> PyResult<()> {
+    fn set_previous_msgid(
+        &mut self,
+        previous_msgid: Option<String>,
+    ) -> PyResult<()> {
         self.0.previous_msgid = previous_msgid;
         Ok(())
     }
@@ -174,7 +194,10 @@ impl PyPOEntry {
     }
 
     #[setter]
-    fn set_previous_msgid_plural(&mut self, previous_msgid_plural: Option<String>) -> PyResult<()> {
+    fn set_previous_msgid_plural(
+        &mut self,
+        previous_msgid_plural: Option<String>,
+    ) -> PyResult<()> {
         self.0.previous_msgid_plural = previous_msgid_plural;
         Ok(())
     }
@@ -185,7 +208,10 @@ impl PyPOEntry {
     }
 
     #[setter]
-    fn set_previous_msgctxt(&mut self, previous_msgctxt: Option<String>) -> PyResult<()> {
+    fn set_previous_msgctxt(
+        &mut self,
+        previous_msgctxt: Option<String>,
+    ) -> PyResult<()> {
         self.0.previous_msgctxt = previous_msgctxt;
         Ok(())
     }
@@ -207,7 +233,10 @@ impl PyPOEntry {
     }
 
     #[pyo3(text_signature = "($self, wrapwidth=78)")]
-    fn to_string_with_wrapwidth(&self, wrapwidth: usize) -> PyResult<String> {
+    fn to_string_with_wrapwidth(
+        &self,
+        wrapwidth: usize,
+    ) -> PyResult<String> {
         Ok(self.0.to_string_with_wrapwidth(wrapwidth))
     }
 

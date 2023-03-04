@@ -2,17 +2,28 @@ use std::collections::HashMap;
 
 use pyo3::prelude::*;
 
-use rspolib::{mofile, MOFile, FileOptions, Save, AsBytes, SaveAsPOFile, SaveAsMOFile};
 use crate::pymoentry::PyMOEntry;
+use rspolib::{
+    mofile, AsBytes, FileOptions, MOFile, Save, SaveAsMOFile,
+    SaveAsPOFile,
+};
 
 #[pyfunction]
 #[pyo3(name = "mofile")]
 #[pyo3(signature = (path_or_content, wrapwidth=78))]
-pub fn py_mofile(path_or_content: &str, wrapwidth: usize) -> PyResult<PyMOFile> {
-    let result = mofile(FileOptions::from((path_or_content, wrapwidth)));
+pub fn py_mofile(
+    path_or_content: &str,
+    wrapwidth: usize,
+) -> PyResult<PyMOFile> {
+    let result =
+        mofile(FileOptions::from((path_or_content, wrapwidth)));
     match result {
         Ok(mofile) => Ok(PyMOFile(mofile)),
-        Err(e) => Err(PyErr::new::<pyo3::exceptions::PyException, _>(e.to_string())),
+        Err(e) => {
+            Err(PyErr::new::<pyo3::exceptions::PyException, _>(
+                e.to_string(),
+            ))
+        }
     }
 }
 
@@ -62,15 +73,18 @@ impl PyMOFile {
     }
 
     fn save(&self, path: &str) -> PyResult<()> {
-        Ok(self.0.save(path))
+        self.0.save(path);
+        Ok(())
     }
 
     fn save_as_pofile(&self, path: &str) -> PyResult<()> {
-        Ok(self.0.save_as_pofile(path))
+        self.0.save_as_pofile(path);
+        Ok(())
     }
 
     fn save_as_mofile(&self, path: &str) -> PyResult<()> {
-        Ok(self.0.save_as_mofile(path))
+        self.0.save_as_mofile(path);
+        Ok(())
     }
 
     fn metadata_as_entry(&self) -> PyResult<PyMOEntry> {
@@ -97,8 +111,45 @@ impl PyMOFile {
         Ok(self.0.as_bytes_be())
     }
 
+    fn remove_by_msgid(&mut self, msgid: &str) -> PyResult<()> {
+        self.0.remove_by_msgid(msgid);
+        Ok(())
+    }
+
+    fn remove_by_msgid_msgctxt(
+        &mut self,
+        msgid: &str,
+        msgctxt: &str,
+    ) -> PyResult<()> {
+        self.0.remove_by_msgid_msgctxt(msgid, msgctxt);
+        Ok(())
+    }
+
+    fn find_by_msgid(
+        &self,
+        msgid: &str,
+    ) -> PyResult<Option<PyMOEntry>> {
+        match self.0.find_by_msgid(msgid) {
+            Some(entry) => Ok(Some(PyMOEntry::from(entry))),
+            None => Ok(None),
+        }
+    }
+
+    fn find_by_msgid_msgctxt(
+        &self,
+        msgid: &str,
+        msgctxt: &str,
+    ) -> PyResult<Option<PyMOEntry>> {
+        match self.0.find_by_msgid_msgctxt(msgid, msgctxt) {
+            Some(entry) => Ok(Some(PyMOEntry::from(entry))),
+            None => Ok(None),
+        }
+    }
+
+    // For consistency with Python's polib
     fn append(&mut self, entry: &PyMOEntry) -> PyResult<()> {
-        Ok(self.0.entries.push(entry._inner()))
+        self.0.entries.push(entry._inner());
+        Ok(())
     }
 
     fn __len__(&self) -> PyResult<usize> {
@@ -106,18 +157,22 @@ impl PyMOFile {
     }
 
     fn __contains__(&self, entry: &PyMOEntry) -> PyResult<bool> {
-        Ok(
-            self.0.find_by_msgid_msgctxt(
+        Ok(self
+            .0
+            .find_by_msgid_msgctxt(
                 &entry._inner().msgid,
                 &entry._inner().msgctxt.unwrap_or("".to_string()),
-            ).is_some()
-        )
+            )
+            .is_some())
     }
 
     fn __getitem__(&self, index: usize) -> PyResult<PyMOEntry> {
         match self.0.entries.get(index) {
             Some(entry) => Ok(PyMOEntry::from(entry)),
-            None => Err(PyErr::new::<pyo3::exceptions::PyIndexError, _>("Index out of range")),
+            None => Err(PyErr::new::<
+                pyo3::exceptions::PyIndexError,
+                _,
+            >("Index out of range")),
         }
     }
 

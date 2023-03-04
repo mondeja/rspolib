@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use pyo3::prelude::*;
 
-use rspolib::MOEntry;
 use rspolib::prelude::*;
+use rspolib::MOEntry;
 
 #[pyclass]
 #[pyo3(name = "MOEntry")]
@@ -20,15 +20,19 @@ impl PyMOEntry {
     #[new]
     #[pyo3(signature = (msgid="".to_string(), msgstr=None, msgid_plural=None, msgstr_plural=None, msgctxt=None))]
     fn new(
-            msgid: String,
-            msgstr: Option<String>,
-            msgid_plural: Option<String>,
-            msgstr_plural: Option<HashMap<String, String>>,
-            msgctxt: Option<String>,
+        msgid: String,
+        msgstr: Option<String>,
+        msgid_plural: Option<String>,
+        msgstr_plural: Option<HashMap<String, String>>,
+        msgctxt: Option<String>,
     ) -> Self {
-        PyMOEntry(
-            MOEntry::new(msgid, msgstr, msgid_plural, msgstr_plural, msgctxt),
-        )
+        PyMOEntry(MOEntry::new(
+            msgid,
+            msgstr,
+            msgid_plural,
+            msgstr_plural,
+            msgctxt,
+        ))
     }
 
     #[getter]
@@ -59,18 +63,26 @@ impl PyMOEntry {
     }
 
     #[setter]
-    fn set_msgid_plural(&mut self, msgid_plural: Option<String>) -> PyResult<()> {
+    fn set_msgid_plural(
+        &mut self,
+        msgid_plural: Option<String>,
+    ) -> PyResult<()> {
         self.0.msgid_plural = msgid_plural;
         Ok(())
     }
 
     #[getter]
-    fn msgstr_plural(&self) -> PyResult<Option<HashMap<String, String>>> {
+    fn msgstr_plural(
+        &self,
+    ) -> PyResult<Option<HashMap<String, String>>> {
         Ok(self.0.msgstr_plural.clone())
     }
 
     #[setter]
-    fn set_msgstr_plural(&mut self, msgstr_plural: Option<HashMap<String, String>>) -> PyResult<()> {
+    fn set_msgstr_plural(
+        &mut self,
+        msgstr_plural: Option<HashMap<String, String>>,
+    ) -> PyResult<()> {
         self.0.msgstr_plural = msgstr_plural;
         Ok(())
     }
@@ -81,13 +93,19 @@ impl PyMOEntry {
     }
 
     #[setter]
-    fn set_msgctxt(&mut self, msgctxt: Option<String>) -> PyResult<()> {
+    fn set_msgctxt(
+        &mut self,
+        msgctxt: Option<String>,
+    ) -> PyResult<()> {
         self.0.msgctxt = msgctxt;
         Ok(())
     }
 
     #[pyo3(text_signature = "($self, wrapwidth=78)")]
-    fn to_string_with_wrapwidth(&self, wrapwidth: usize) -> PyResult<String> {
+    fn to_string_with_wrapwidth(
+        &self,
+        wrapwidth: usize,
+    ) -> PyResult<String> {
         Ok(self.0.to_string_with_wrapwidth(wrapwidth))
     }
 

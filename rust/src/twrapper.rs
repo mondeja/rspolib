@@ -20,7 +20,7 @@ fn get_linebreaks(
     let mut ret = vec![];
 
     let mut accum_char_bindex = 0;
-    let mut accum_char_width = 0;  // bindex, width
+    let mut accum_char_width = 0; // bindex, width
     let mut last_break_width = 0;
     let mut prev_end_whitespaces = 0;
 
@@ -35,8 +35,6 @@ fn get_linebreaks(
             continue;
         }
         let (next_lb, _) = linebreaks[lbi + 1];
-
-
 
         let mut lb_bindex = *lb;
 
@@ -58,7 +56,9 @@ fn get_linebreaks(
             // This is the same behaviour that gettext has
             if text[partial_accum_bindex..].starts_with(' ') {
                 prev_end_whitespaces = 0;
-                for ch in text[..partial_accum_bindex + 1].chars().rev() {
+                for ch in
+                    text[..partial_accum_bindex + 1].chars().rev()
+                {
                     if ch.is_ascii_whitespace() {
                         partial_accum_width -= 1;
                         lb_bindex -= 1;
@@ -68,7 +68,6 @@ fn get_linebreaks(
                     }
                 }
             }
-            
         }
         let width = partial_accum_width - last_break_width;
         if width > wrapwidth {

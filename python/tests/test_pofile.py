@@ -9,6 +9,7 @@ def test_parse(runner, tests_dir):
         ],
     )
 
+
 def test_format(runner, tests_dir):
     import polib
     import rspolib
@@ -17,14 +18,19 @@ def test_format(runner, tests_dir):
     pypo = polib.pofile(f"{tests_dir}/django-complete.po")
 
     def format_as_string(polib):
-        assert (rspo if polib.__name__ == "rspolib" else pypo).__str__().startswith("# This file is distributed")
-    
+        assert (
+            (rspo if polib.__name__ == "rspolib" else pypo)
+            .__str__()
+            .startswith("# This file is distributed")
+        )
+
     runner.run(
         {"reps": 100},
         [
             format_as_string,
-        ]
+        ],
     )
+
 
 def test_edit_save(runner, tests_dir, output_dir):
     def edit_save(polib):
@@ -32,10 +38,10 @@ def test_edit_save(runner, tests_dir, output_dir):
         po.metadata["Project-Id-Version"] = "test"
         entries = po.entries if polib.__name__ == "rspolib" else po
         for entry in entries:
-                entry.msgstr = "test"
+            entry.msgstr = "test"
         po.save(f"{output_dir}/pofile_edit_save.po")
         po.save_as_mofile(f"{output_dir}/pofile_edit_save.mo")
-    
+
     runner.run(
         {"reps": 70},
         [
@@ -43,23 +49,24 @@ def test_edit_save(runner, tests_dir, output_dir):
         ],
     )
 
+
 def test_methods(runner, tests_dir):
     def percent_translated(polib):
         po = polib.pofile(f"{tests_dir}/2-translated-entries.po")
         assert po.percent_translated() == 40
-    
+
     def untranslated_entries(polib):
         po = polib.pofile(f"{tests_dir}/2-translated-entries.po")
         assert len(po.untranslated_entries()) == 3
-    
+
     def translated_entries(polib):
         po = polib.pofile(f"{tests_dir}/2-translated-entries.po")
         assert len(po.translated_entries()) == 2
-    
+
     def fuzzy_entries(polib):
         po = polib.pofile(f"{tests_dir}/fuzzy-no-fuzzy.po")
         assert len(po.fuzzy_entries()) == 1
-    
+
     runner.run(
         {"reps": 1000},
         [
@@ -69,6 +76,7 @@ def test_methods(runner, tests_dir):
             fuzzy_entries,
         ],
     )
+
 
 def test_find_entry(runner, tests_dir):
     import polib
@@ -102,6 +110,5 @@ def test_find_entry(runner, tests_dir):
         [
             find_by_msgid,
             find_by_msgid_msgctxt,
-        ]
+        ],
     )
-    

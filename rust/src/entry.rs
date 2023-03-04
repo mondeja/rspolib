@@ -161,7 +161,7 @@ fn mo_entry_to_string(
 /// let file = mofile("tests-data/all.mo").unwrap();
 /// let entry = file.metadata_as_entry();
 /// let entry_str = mo_metadata_entry_to_string(&entry);
-/// 
+///
 /// assert!(entry_str.starts_with("msgid \"\"\nmsgstr \"\""));
 /// ```
 pub fn mo_metadata_entry_to_string(entry: &MOEntry) -> String {
@@ -173,7 +173,7 @@ pub fn mo_metadata_entry_to_string(entry: &MOEntry) -> String {
     )
 }
 
-pub struct POStringField<'a> {
+pub(crate) struct POStringField<'a> {
     fieldname: &'a str,
     delflag: &'a str,
     value: &'a str,
@@ -257,7 +257,7 @@ impl<'a> fmt::Display for POStringField<'a> {
 /// - If `msgstr` is not `None`, then the entry is a
 ///   translation of a singular form.
 /// - If `msgid_plural` is not `None`, then the entry
-///   is a translation of a plural form contained in 
+///   is a translation of a plural form contained in
 ///   `msgstr_plural`.
 #[derive(Default, Clone, Debug, PartialEq)]
 pub struct MOEntry {
@@ -354,7 +354,7 @@ impl fmt::Display for MOEntry {
 }
 
 impl From<&str> for MOEntry {
-    /// Generates a [MOEntry] from a string as the `msgid` 
+    /// Generates a [MOEntry] from a string as the `msgid`
     fn from(s: &str) -> Self {
         MOEntry::new(s.to_string(), None, None, None, None)
     }
@@ -414,7 +414,7 @@ pub struct POEntry {
     pub msgctxt: Option<String>,
     /// the entry is marked as obsolete
     pub obsolete: bool,
-    /// generated comments for machines 
+    /// generated comments for machines
     pub comment: Option<String>,
     /// generated comments for translators
     pub tcomment: Option<String>,

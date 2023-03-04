@@ -4,7 +4,7 @@
 //! The implementation differs a bit to make it even better.
 //!
 //! ## Quick start
-//! 
+//!
 //! ### Read and save a PO file
 //!
 //! ```rust
@@ -33,8 +33,8 @@
 //!
 //! ## Features
 //!
-//! * Unicode Line Breaking support formatting msgstrs.
-//! * Correct handling of empty and non existent PO fields values. 
+//! * Unicode Line Breaking formatting support.
+//! * Correct handling of empty and non existent PO fields values.
 //! * More detailed error handling parsing PO and MO files.
 //! * Custom byte order MO files generation.
 //!
@@ -42,7 +42,7 @@
 //!
 //! * [POFile]s, contains [POEntry]s.
 //! * [MOFile]s, contains [MOEntry]s.
-//! 
+//!
 //! Items of the same level can be converted between them,
 //! for example a [POEntry] can be converted to a [MOEntry] using
 //! `MOEntry::from(&POEntry)` because [MOEntry]s implement the
@@ -67,16 +67,13 @@ mod traits;
 mod twrapper;
 
 pub use crate::entry::{
-    MOEntry, POEntry, Translated as TranslatedEntry,
-    MsgidEotMsgctxt,
-    mo_metadata_entry_to_string,
+    mo_metadata_entry_to_string, MOEntry, MsgidEotMsgctxt, POEntry,
+    Translated as TranslatedEntry,
 };
 pub use crate::file::{
     mofile::{mofile, MOFile},
     pofile::{pofile, POFile},
     AsBytes, FileOptions, Save, SaveAsMOFile, SaveAsPOFile,
 };
-pub use crate::moparser::{
-    MAGIC, MAGIC_SWAPPED,
-};
+pub use crate::moparser::{MAGIC, MAGIC_SWAPPED};
 pub use crate::traits::Merge;

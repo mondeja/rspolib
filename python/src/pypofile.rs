@@ -2,17 +2,28 @@ use std::collections::HashMap;
 
 use pyo3::prelude::*;
 
-use rspolib::{pofile, POFile, MOFile, FileOptions, AsBytes, Save, SaveAsMOFile, SaveAsPOFile};
 use crate::pypoentry::PyPOEntry;
+use rspolib::{
+    pofile, AsBytes, FileOptions, MOFile, POFile, Save, SaveAsMOFile,
+    SaveAsPOFile,
+};
 
 #[pyfunction]
 #[pyo3(name = "pofile")]
 #[pyo3(signature = (path_or_content, wrapwidth=78))]
-pub fn py_pofile(path_or_content: &str, wrapwidth: usize) -> PyResult<PyPOFile> {
-    let result = pofile(FileOptions::from((path_or_content, wrapwidth)));
+pub fn py_pofile(
+    path_or_content: &str,
+    wrapwidth: usize,
+) -> PyResult<PyPOFile> {
+    let result =
+        pofile(FileOptions::from((path_or_content, wrapwidth)));
     match result {
         Ok(pofile) => Ok(PyPOFile(pofile)),
-        Err(e) => Err(PyErr::new::<pyo3::exceptions::PyException, _>(e.to_string())),
+        Err(e) => {
+            Err(PyErr::new::<pyo3::exceptions::PyException, _>(
+                e.to_string(),
+            ))
+        }
     }
 }
 
@@ -62,33 +73,49 @@ impl PyPOFile {
     }
 
     fn save(&self, path: &str) -> PyResult<()> {
-        Ok(self.0.save(path))
+        self.0.save(path);
+        Ok(())
     }
 
     fn save_as_pofile(&self, path: &str) -> PyResult<()> {
-        Ok(self.0.save_as_pofile(path))
+        self.0.save_as_pofile(path);
+        Ok(())
     }
 
     fn save_as_mofile(&self, path: &str) -> PyResult<()> {
-        Ok(self.0.save_as_mofile(path))
+        self.0.save_as_mofile(path);
+        Ok(())
     }
 
     fn remove_by_msgid(&mut self, msgid: &str) -> PyResult<()> {
-        Ok(self.0.remove_by_msgid(msgid))
+        self.0.remove_by_msgid(msgid);
+        Ok(())
     }
 
-    fn remove_by_msgid_msgctxt(&mut self, msgid: &str, msgctxt: &str) -> PyResult<()> {
-        Ok(self.0.remove_by_msgid_msgctxt(msgid, msgctxt))
+    fn remove_by_msgid_msgctxt(
+        &mut self,
+        msgid: &str,
+        msgctxt: &str,
+    ) -> PyResult<()> {
+        self.0.remove_by_msgid_msgctxt(msgid, msgctxt);
+        Ok(())
     }
 
-    fn find_by_msgid(&self, msgid: &str) -> PyResult<Option<PyPOEntry>> {
+    fn find_by_msgid(
+        &self,
+        msgid: &str,
+    ) -> PyResult<Option<PyPOEntry>> {
         match self.0.find_by_msgid(msgid) {
             Some(entry) => Ok(Some(PyPOEntry::from(&entry))),
             None => Ok(None),
         }
     }
 
-    fn find_by_msgid_msgctxt(&self, msgid: &str, msgctxt: &str) -> PyResult<Option<PyPOEntry>> {
+    fn find_by_msgid_msgctxt(
+        &self,
+        msgid: &str,
+        msgctxt: &str,
+    ) -> PyResult<Option<PyPOEntry>> {
         match self.0.find_by_msgid_msgctxt(msgid, msgctxt) {
             Some(entry) => Ok(Some(PyPOEntry::from(&entry))),
             None => Ok(None),
@@ -140,11 +167,8 @@ impl PyPOFile {
         magic_number: u32,
         revision_number: u32,
     ) -> PyResult<Vec<u8>> {
-        Ok(
-            MOFile::from(&self.0).as_bytes_with(
-                magic_number, revision_number
-            )
-        )
+        Ok(MOFile::from(&self.0)
+            .as_bytes_with(magic_number, revision_number))
     }
 
     fn as_bytes(&self) -> PyResult<Vec<u8>> {
@@ -160,7 +184,8 @@ impl PyPOFile {
     }
 
     fn append(&mut self, entry: &PyPOEntry) -> PyResult<()> {
-        Ok(self.0.entries.push(entry._inner()))
+        self.0.entries.push(entry._inner());
+        Ok(())
     }
 
     fn __len__(&self) -> PyResult<usize> {
@@ -168,16 +193,22 @@ impl PyPOFile {
     }
 
     fn __contains__(&self, entry: &PyPOEntry) -> PyResult<bool> {
-        Ok(self.0.find_by_msgid_msgctxt(
-            &entry._inner().msgid,
-            &entry._inner().msgctxt.unwrap_or("".to_string())
-        ).is_some())
+        Ok(self
+            .0
+            .find_by_msgid_msgctxt(
+                &entry._inner().msgid,
+                &entry._inner().msgctxt.unwrap_or("".to_string()),
+            )
+            .is_some())
     }
 
     fn __getitem__(&self, index: usize) -> PyResult<PyPOEntry> {
         match self.0.entries.get(index) {
             Some(entry) => Ok(PyPOEntry::from(entry)),
-            None => Err(PyErr::new::<pyo3::exceptions::PyIndexError, _>("Index out of range")),
+            None => Err(PyErr::new::<
+                pyo3::exceptions::PyIndexError,
+                _,
+            >("Index out of range")),
         }
     }
 
