@@ -1,0 +1,12 @@
+[package]
+name = "rspolib-testing"
+version = "0.0.1"
+edition = "2021"
+
+[lib]
+name = "rspolib_testing"
+path = "src/lib.rs"
+
+[dependencies]
+rspolib = { path = ".." }
+

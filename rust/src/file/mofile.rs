@@ -9,30 +9,62 @@ use crate::entry::{
 };
 use crate::errors::IOError;
 use crate::file::{
-    metadata_hashmap_to_msgstr, pofile::POFile, AsBytes, Options,
+    metadata_hashmap_to_msgstr, pofile::POFile, AsBytes, FileOptions,
     Save, SaveAsMOFile, SaveAsPOFile,
 };
 use crate::moparser::{MOFileParser, MAGIC, MAGIC_SWAPPED};
 
-pub fn mofile<'a, Opt>(options: Opt) -> Result<MOFile<'a>, IOError>
+/// MO file factory function
+///
+/// Read a MO file from a path, parse from content as bytes or
+/// from a [FileOptions] struct.
+///
+/// # Examples
+///
+/// ## Read a MO file from a path
+///
+/// ```rust
+/// use rspolib::mofile;
+///
+/// let file = mofile("tests-data/all.mo").unwrap();
+/// assert_eq!(file.entries.len(), 7);
+/// ```
+///
+/// ## Read a MO file from bytes
+///
+/// ```rust
+/// use rspolib::mofile;
+///
+/// let bytes = std::fs::read("tests-data/all.mo").unwrap();
+/// let file = mofile(bytes).unwrap();
+/// assert_eq!(file.entries.len(), 7);
+/// ```
+pub fn mofile<Opt>(options: Opt) -> Result<MOFile, IOError>
 where
-    Opt: Into<Options<'a>>,
+    Opt: Into<FileOptions>,
 {
     let mut parser = MOFileParser::new(options.into());
     parser.parse()?;
     Ok(parser.file)
 }
 
-pub struct MOFile<'a> {
+/// MO file
+#[derive(Clone, Debug, PartialEq)]
+pub struct MOFile {
+    /// Magic number, either [MAGIC] or [MAGIC_SWAPPED]
     pub magic_number: Option<u32>,
+    /// Version number, either 0 or 1
     pub version: Option<u32>,
+    /// Metadata as a hash map
     pub metadata: HashMap<String, String>,
+    /// Message entries
     pub entries: Vec<MOEntry>,
-    pub options: Options<'a>,
+    /// File options. See [FileOptions].
+    pub options: FileOptions,
 }
 
-impl<'a> MOFile<'a> {
-    pub fn new(options: Options<'a>) -> Self {
+impl MOFile {
+    pub fn new(options: FileOptions) -> Self {
         Self {
             options,
             magic_number: None,
@@ -42,6 +74,7 @@ impl<'a> MOFile<'a> {
         }
     }
 
+    /// Returns the metadata as a [MOEntry]
     pub fn metadata_as_entry(&self) -> MOEntry {
         let mut entry =
             MOEntry::new("".to_string(), None, None, None, None);
@@ -53,6 +86,44 @@ impl<'a> MOFile<'a> {
         entry
     }
 
+    /// Find an entry by msgid
+    pub fn find_by_msgid(&self, msgid: &str) -> Option<&MOEntry> {
+        self.entries.iter().find(|e| e.msgid == msgid)
+    }
+
+    /// Find an entry by msgid and msgctxt
+    pub fn find_by_msgid_msgctxt(
+        &self,
+        msgid: &str,
+        msgctxt: &str,
+    ) -> Option<&MOEntry> {
+        self.entries
+            .iter()
+            .find(|e| e.msgid == msgid && e.msgctxt == Some(msgctxt.to_string()))
+    }
+
+    /// Returns the entry as a bytes vector
+    ///
+    /// Specify the magic number and the revision number
+    /// of the generated MO version of the file.
+    /// 
+    /// This method does not check the validity of the values
+    /// `magic_number` and `revision_version` to allow the
+    /// experimental developing of other revision of MO files,
+    /// so be careful about the passed values if you use it.
+    ///
+    /// Valid values for the magic number are [MAGIC] and [MAGIC_SWAPPED].
+    /// Valid values for the revision number are 0 and 1.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use rspolib::mofile;
+    ///
+    /// let file = mofile("tests-data/all.mo").unwrap();
+    /// let bytes = file.as_bytes_with(rspolib::MAGIC_SWAPPED, 1);
+    /// assert_eq!(bytes.len(), 1327);
+    /// ```
     pub fn as_bytes_with(
         &self,
         magic_number: u32,
@@ -86,13 +157,13 @@ impl<'a> MOFile<'a> {
 
             if let Some(msgctxt) = &e.msgctxt {
                 msgid.push_str(msgctxt);
-                msgid.push('\u{0004}');
+                msgid.push('\u{4}');
             }
 
             if let Some(msgid_plural) = &e.msgid_plural {
                 // handle msgid_plural
                 msgid.push_str(&e.msgid);
-                msgid.push('\u{0000}');
+                msgid.push('\u{0}');
                 msgid.push_str(msgid_plural);
 
                 // handle msgstr_plural
@@ -177,7 +248,7 @@ impl<'a> MOFile<'a> {
     }
 }
 
-impl<'a> fmt::Display for MOFile<'a> {
+impl fmt::Display for MOFile {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut ret =
             mo_metadata_entry_to_string(&self.metadata_as_entry());
@@ -192,37 +263,43 @@ impl<'a> fmt::Display for MOFile<'a> {
     }
 }
 
-impl<'a> SaveAsPOFile for MOFile<'a> {}
+// the method save_as_pofile is implemented by the trait
+impl SaveAsPOFile for MOFile {}
 
-impl<'a> Save for MOFile<'a> {
+impl Save for MOFile {
+    /// Save the MOFile to a file at the given path
     fn save(&self, path: &str) {
         let mut file = File::create(path).unwrap();
         file.write_all(self.as_bytes().as_slice()).ok();
     }
 }
 
-impl<'a> SaveAsMOFile for MOFile<'a> {
+impl SaveAsMOFile for MOFile {
+    /// Save the MOFile to a file at the given path
     fn save_as_mofile(&self, path: &str) {
         self.save(path);
     }
 }
 
-impl<'a> AsBytes for MOFile<'a> {
+impl AsBytes for MOFile {
+    /// Return the MOFile as a vector of bytes in little endian
     fn as_bytes(&self) -> Vec<u8> {
         self.as_bytes_with(MAGIC, 0)
     }
 
+    /// Return the MOFile as a vector of bytes in little endian
     fn as_bytes_le(&self) -> Vec<u8> {
         self.as_bytes_with(MAGIC, 0)
     }
 
+    /// Return the MOFile as a vector of bytes in big endian
     fn as_bytes_be(&self) -> Vec<u8> {
         self.as_bytes_with(MAGIC_SWAPPED, 0)
     }
 }
 
-impl<'a> From<&POFile<'a>> for MOFile<'a> {
-    fn from(file: &POFile<'a>) -> MOFile<'a> {
+impl From<&POFile> for MOFile {
+    fn from(file: &POFile) -> MOFile {
         let mut new_file = MOFile::new(file.options.clone());
         new_file.metadata = file.metadata.clone();
         new_file.entries = file
@@ -238,7 +315,6 @@ impl<'a> From<&POFile<'a>> for MOFile<'a> {
 mod tests {
     use super::*;
     use crate::bitwise::as_u32_le;
-    use std::env;
     use std::fs;
     use std::io::Read;
     use std::path::Path;
@@ -317,7 +393,7 @@ mod tests {
 
     #[test]
     fn mofile_save_as_pofile() {
-        let tmpdir = env::temp_dir();
+        let tmpdir = "tests-data/tests";
 
         let path = "tests-data/all.mo";
         let file = mofile(path).unwrap();
@@ -339,7 +415,7 @@ mod tests {
         read_bytes_from_file: bool,
         save_method_name: &str,
     ) {
-        let tmpdir = env::temp_dir();
+        let tmpdir ="tests-data/tests";
 
         let path = "tests-data/all.mo";
         let file = mofile(path).unwrap();

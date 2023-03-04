@@ -9,6 +9,7 @@ const CHARACTERS_TO_UNESCAPE_NO_DOUBLE_QUOTES: [char; 7] = [
     '\u{12}', // \f
 ];
 
+/// Escape characters in a PO string field
 pub fn escape(text: &str) -> String {
     text.replace('\\', r#"\\"#)
         .replace('\t', r"\t")
@@ -20,7 +21,7 @@ pub fn escape(text: &str) -> String {
         .replace('"', r#"\""#)
 }
 
-pub fn unescape_characters(
+fn unescape_characters(
     text: &str,
     characters: &[char],
 ) -> String {
@@ -44,10 +45,12 @@ pub fn unescape_characters(
     result.iter().collect()
 }
 
+/// Unescape characters in a PO string field
 pub fn unescape(text: &str) -> String {
     unescape_characters(text, &CHARACTERS_TO_UNESCAPE)
 }
 
+/// Unescape all characters except double quotes in a PO string field
 pub fn unescape_except_double_quotes(text: &str) -> String {
     unescape_characters(
         text,

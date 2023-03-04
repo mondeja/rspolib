@@ -22,7 +22,9 @@ const METADATA_KEYS_ORDER: [&str; 11] = [
     "Plural-Forms",
 ];
 
+/// Save file as a PO file with the `save_as_pofile` method
 pub trait SaveAsPOFile {
+    /// Save the file as a PO file to the given path
     fn save_as_pofile(&self, path: &str)
     where
         Self: fmt::Display,
@@ -32,78 +34,104 @@ pub trait SaveAsPOFile {
     }
 }
 
+/// Save file with the `save` method
 pub trait Save {
+    /// Save the file to the given path
     fn save(&self, path: &str);
 }
 
+/// Save file as a MO file with the `save_as_mofile` method
 pub trait SaveAsMOFile {
+    /// Save the file as a MO file to the given path
     fn save_as_mofile(&self, path: &str);
 }
 
 pub trait AsBytes {
+    /// Return the content as bytes
     fn as_bytes(&self) -> Vec<u8>;
+    /// Return the content as bytes in little endian
     fn as_bytes_le(&self) -> Vec<u8>;
+    /// Return the content as bytes in big endian
     fn as_bytes_be(&self) -> Vec<u8>;
 }
 
-#[derive(Clone, Default)]
-pub struct Options<'a> {
-    pub path_or_content: &'a str,
-    pub check_for_duplicates: bool,
+/// File options struct passed when creating a new PO or MO file
+///
+/// # Examples
+///
+/// ```rust
+/// use std::fs;
+/// use rspolib::FileOptions;
+///
+/// // From path
+/// let opts = FileOptions::from("tests-data/all.po");
+/// assert_eq!(opts.path_or_content, "tests-data/all.po");
+/// assert_eq!(opts.wrapwidth, 78);
+///
+/// // From path and wrap width
+/// let opts = FileOptions::from(("tests-data/obsoletes.po", 80));
+/// assert_eq!(opts.path_or_content, "tests-data/obsoletes.po");
+/// assert_eq!(opts.wrapwidth, 80);
+///
+/// // From bytes
+/// let bytes = fs::read("tests-data/obsoletes.po").unwrap();
+/// let opts = FileOptions::from(bytes);
+/// ```
+#[derive(Clone, Default, Debug, PartialEq)]
+pub struct FileOptions {
+    /// Path or content to the file
+    pub path_or_content: String,
+    /// Wrap width for the PO file, used when converted as a string 
     pub wrapwidth: usize,
+    /// Content as bytes, used by MO files when the content is passed as bytes
     pub byte_content: Option<Vec<u8>>,
 }
 
-impl<'a> From<&Options<'a>> for Options<'a> {
+impl From<&FileOptions> for FileOptions {
     fn from(options: &Self) -> Self {
         Self {
-            path_or_content: options.path_or_content,
-            check_for_duplicates: options.check_for_duplicates,
+            path_or_content: options.path_or_content.clone(),
             wrapwidth: options.wrapwidth,
             ..Default::default()
         }
     }
 }
 
-impl<'a> From<&'a str> for Options<'a> {
+impl<'a> From<&'a str> for FileOptions {
     fn from(path_or_content: &'a str) -> Self {
         Self {
-            path_or_content,
+            path_or_content: path_or_content.to_string(),
             wrapwidth: 78,
-            check_for_duplicates: false,
             ..Default::default()
         }
     }
 }
 
-impl<'a> From<(&'a str, usize)> for Options<'a> {
+impl<'a> From<(&'a str, usize)> for FileOptions {
     fn from(opts: (&'a str, usize)) -> Self {
         Self {
-            path_or_content: opts.0,
+            path_or_content: opts.0.to_string(),
             wrapwidth: opts.1,
-            check_for_duplicates: false,
             ..Default::default()
         }
     }
 }
 
-impl<'a> From<(&'a str, bool)> for Options<'a> {
-    fn from(opts: (&'a str, bool)) -> Self {
-        Self {
-            path_or_content: opts.0,
-            wrapwidth: 78,
-            check_for_duplicates: opts.1,
-            ..Default::default()
-        }
-    }
-}
-
-impl<'a> From<Vec<u8>> for Options<'a> {
+impl From<Vec<u8>> for FileOptions {
     fn from(byte_content: Vec<u8>) -> Self {
         Self {
-            path_or_content: "",
+            path_or_content: "".to_string(),
             wrapwidth: 78,
-            check_for_duplicates: false,
+            byte_content: Some(byte_content),
+        }
+    }
+}
+
+impl From<(Vec<u8>, usize)> for FileOptions {
+    fn from((byte_content, wrapwidth): (Vec<u8>, usize)) -> Self {
+        Self {
+            path_or_content: "".to_string(),
+            wrapwidth,
             byte_content: Some(byte_content),
         }
     }
@@ -153,49 +181,29 @@ mod tests {
 
     #[test]
     fn options_from() {
-        // Options from &Options
-        let options = Options {
+        // FileOptions from &FileOptions
+        let options = FileOptions {
             wrapwidth: 50,
-            path_or_content: "foobar",
-            check_for_duplicates: true,
+            path_or_content: "foobar".to_string(),
             byte_content: None,
         };
 
-        let options_from_options = Options::from(&options);
+        let options_from_options = FileOptions::from(&options);
         assert_eq!(options_from_options.wrapwidth, 50);
         assert_eq!(options_from_options.path_or_content, "foobar");
-        assert_eq!(options_from_options.check_for_duplicates, true);
 
-        // Options from &str
-        let options_from_str = Options::from("foobar");
+        // FileOptions from &str
+        let options_from_str = FileOptions::from("foobar");
         assert_eq!(options_from_str.wrapwidth, 78);
         assert_eq!(options_from_str.path_or_content, "foobar");
-        assert_eq!(options_from_str.check_for_duplicates, false);
 
-        // Options from (&str, usize)
+        // FileOptions from (&str, usize)
         let options_from_str_and_usize =
-            Options::from(("foobar", 50));
+            FileOptions::from(("foobar", 50));
         assert_eq!(options_from_str_and_usize.wrapwidth, 50);
         assert_eq!(
             options_from_str_and_usize.path_or_content,
             "foobar"
-        );
-        assert_eq!(
-            options_from_str_and_usize.check_for_duplicates,
-            false
-        );
-
-        // Options from (&str, bool)
-        let options_from_str_and_bool =
-            Options::from(("foobar", true));
-        assert_eq!(options_from_str_and_bool.wrapwidth, 78);
-        assert_eq!(
-            options_from_str_and_bool.path_or_content,
-            "foobar"
-        );
-        assert_eq!(
-            options_from_str_and_bool.check_for_duplicates,
-            true
         );
     }
 }

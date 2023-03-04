@@ -10,7 +10,7 @@ use phf::phf_map;
 use crate::entry::POEntry;
 use crate::errors::{MaybeFilename, SyntaxError};
 use crate::escaping::unescape;
-use crate::file::{pofile::POFile, Options as FileOptions};
+use crate::file::{pofile::POFile, FileOptions};
 
 #[derive(Hash, Eq, PartialEq, Clone, Copy, Debug)]
 
@@ -79,12 +79,10 @@ impl Iterator for LinesHandler<'_> {
     }
 }
 
-pub struct POFileParser<'a> {
-    //fhandle: Option<Lines<BufReader<File>>>,
-    //bhandle: Option<Lines<BufReader<&'a [u8]>>>,
+pub(crate) struct POFileParser {
     content_is_path: bool,
 
-    pub file: POFile<'a>,
+    pub file: POFile,
 
     current_state: St,
     current_token: String,
@@ -95,10 +93,10 @@ pub struct POFileParser<'a> {
     transitions: Transitions,
 }
 
-impl POFileParser<'_> {
+impl POFileParser {
     pub fn new(file_options: FileOptions) -> POFileParser {
         POFileParser {
-            content_is_path: Path::new(file_options.path_or_content)
+            content_is_path: Path::new(&file_options.path_or_content)
                 .is_file(),
 
             file: POFile::new(file_options),
@@ -144,7 +142,7 @@ impl POFileParser<'_> {
 
     fn parse_file(&mut self) -> Result<(), SyntaxError> {
         let mut buf = BufReader::new(
-            File::open(self.file.options.path_or_content).unwrap(),
+            File::open(&self.file.options.path_or_content).unwrap(),
         );
         let mut handler = LinesHandler::new(&mut buf);
         self.parse_with_handler(&mut handler)?;
@@ -152,9 +150,8 @@ impl POFileParser<'_> {
     }
 
     fn parse_content(&mut self) -> Result<(), SyntaxError> {
-        let mut buf = BufReader::new(
-            self.file.options.path_or_content.as_bytes(),
-        );
+        let content = self.file.options.path_or_content.clone();
+        let mut buf = BufReader::new(content.as_bytes());
         let mut handler = LinesHandler::new(&mut buf);
         self.parse_with_handler(&mut handler)?;
         Ok(())
@@ -260,7 +257,7 @@ impl POFileParser<'_> {
                 line,
                 self.current_line,
                 self.content_is_path,
-                self.file.options.path_or_content,
+                &self.file.options.path_or_content,
                 // +2 taking into account ' "' (space and first
                 // double quote)
                 tokens[0].chars().count() + 2,
@@ -284,7 +281,7 @@ impl POFileParser<'_> {
                 line,
                 self.current_line,
                 self.content_is_path,
-                self.file.options.path_or_content,
+                &self.file.options.path_or_content,
                 1,
             )?;
             self.process(&St::MC);
@@ -316,7 +313,7 @@ impl POFileParser<'_> {
             if nb_tokens < 2 {
                 return Err(SyntaxError::Custom {
                     maybe_filename: MaybeFilename::new(
-                        self.file.options.path_or_content,
+                        &self.file.options.path_or_content,
                         self.content_is_path,
                     ),
                     line: self.current_line,
@@ -337,7 +334,7 @@ impl POFileParser<'_> {
                 return Err(SyntaxError::Custom {
                     message: "invalid continuation line".to_string(),
                     maybe_filename: MaybeFilename::new(
-                        self.file.options.path_or_content,
+                        &self.file.options.path_or_content,
                         self.content_is_path,
                     ),
                     line: self.current_line,
@@ -351,7 +348,7 @@ impl POFileParser<'_> {
                 return Err(SyntaxError::Custom {
                     message: format!("unknown keyword {}", tokens[1]),
                     maybe_filename: MaybeFilename::new(
-                        self.file.options.path_or_content,
+                        &self.file.options.path_or_content,
                         self.content_is_path,
                     ),
                     line: self.current_line,
@@ -369,7 +366,7 @@ impl POFileParser<'_> {
         } else {
             return Err(SyntaxError::Generic {
                 maybe_filename: MaybeFilename::new(
-                    self.file.options.path_or_content,
+                    &self.file.options.path_or_content,
                     self.content_is_path,
                 ),
                 line: self.current_line,

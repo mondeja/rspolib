@@ -1,41 +1,118 @@
 use std::collections::HashMap;
 use std::fmt;
-use std::fs::File;
-use std::io::Write;
 
 use crate::entry::{
     mo_metadata_entry_to_string, MOEntry, POEntry, Translated,
 };
 use crate::errors::SyntaxError;
 use crate::file::{
-    metadata_hashmap_to_msgstr, mofile::MOFile, AsBytes, Options,
+    metadata_hashmap_to_msgstr, mofile::MOFile, AsBytes, FileOptions,
     Save, SaveAsMOFile, SaveAsPOFile,
 };
 use crate::moparser::{MAGIC, MAGIC_SWAPPED};
 use crate::poparser::POFileParser;
 use crate::traits::Merge;
 
+/// PO files factory function.
+///
+/// It takes an argument that could be either:
+///
+/// * A string as path to an existent file.
+/// * The content of a PO file as string.
+/// * A [FileOptions] struct.
+///
+/// # Examples
+///
+/// ## Open from path
+///
+/// ```rust
+/// use rspolib::pofile;
+///
+/// let file = pofile("tests-data/obsoletes.po").unwrap();
+/// ```
+///
+/// ## Open from content
+///
+/// ```rust
+/// use rspolib::pofile;
+///
+/// let content = r#"#
+/// msgid ""
+/// msgstr ""
+/// 
+/// msgid "A message"
+/// msgstr "Un mensaje"
+/// "#;
+///
+/// let file = pofile(content).unwrap();
+/// ```
+///
+/// ## Open from bytes
+///
+/// ```rust
+/// use std::fs;
+/// use rspolib::pofile;
+///
+/// let bytes_content = fs::read("tests-data/all.po").unwrap();
+/// let file = pofile(bytes_content).unwrap();
+/// ```
+///
+/// ## Tuples into [FileOptions]
+///
+/// ```rust
+/// use rspolib::pofile;
+/// 
+/// // Wrap width
+/// let file = pofile(("tests-data/all.po", 75)).unwrap();
+/// ```
+///
+/// ## Explicitly from [FileOptions]
+///
+/// ```rust
+/// use std::fs;
+/// use rspolib::{pofile, FileOptions as POFileOptions};
+///
+/// let file = pofile(POFileOptions::default()).unwrap();
+///
+/// // Path or content
+/// let opts = POFileOptions::from("tests-data/obsoletes.po");
+/// let file = pofile(opts).unwrap();
+///
+/// // Wrap width
+/// let opts = POFileOptions::from(("tests-data/all.po", 75));
+/// let file = pofile(opts).unwrap();
+/// ```
 pub fn pofile<'a, Opt>(
     options: Opt,
-) -> Result<POFile<'a>, SyntaxError>
+) -> Result<POFile, SyntaxError>
 where
-    Opt: Into<Options<'a>>,
+    Opt: Into<FileOptions>,
 {
     let mut parser = POFileParser::new(options.into());
     parser.parse()?;
     Ok(parser.file)
 }
 
-pub struct POFile<'a> {
-    pub header: Option<String>,
-    pub metadata: HashMap<String, String>,
-    pub metadata_is_fuzzy: bool,
+/// PO file
+#[derive(Clone, Debug, PartialEq)]
+pub struct POFile {
+    /// Entries of the file.
     pub entries: Vec<POEntry>,
-    pub options: Options<'a>,
+    /// Header of the file, if any. Optionally defined
+    /// in PO files before the first entry.
+    pub header: Option<String>,
+    /// First optional field of PO files that describes
+    /// the metadata of the file stored as a hash map.
+    pub metadata: HashMap<String, String>,
+    /// Whether the metadata is marked with the `fuzzy`
+    /// flag or not.
+    pub metadata_is_fuzzy: bool,
+    /// Options defined for the file. See [FileOptions].
+    pub options: FileOptions,
 }
 
-impl<'a> POFile<'a> {
-    pub fn new(options: Options<'a>) -> Self {
+impl POFile {
+    pub fn new(options: FileOptions) -> Self {
         Self {
             options,
             header: None,
@@ -45,19 +122,34 @@ impl<'a> POFile<'a> {
         }
     }
 
+    /// Remove an entry from the file
     pub fn remove(&mut self, entry: &POEntry) {
-        // Remove only the first occurrence
-        if let Some(index) =
-            self.entries.iter().position(|e| e == entry)
-        {
-            self.entries.remove(index);
-        }
+        self.entries.retain(|e| e != entry);
     }
 
+    /// Remove the first entry that has the same msgid
+    pub fn remove_by_msgid(&mut self, msgid: &str) {
+        self.entries.retain(|e| e.msgid != msgid);
+    }
+
+    /// Remove the first entry that has the same msgid and msgctxt
+    pub fn remove_by_msgid_msgctxt(
+        &mut self,
+        msgid: &str,
+        msgctxt: &str,
+    ) {
+        self.entries.retain(|e| {
+            e.msgid != msgid
+            || e.msgctxt.as_ref().unwrap_or(&"".to_string()) != msgctxt
+        });
+    }
+
+    /// Find an entry by his msgid
     pub fn find_by_msgid(&self, msgid: &str) -> Option<POEntry> {
         self.entries.iter().find(|e| e.msgid == msgid).cloned()
     }
 
+    /// Find an entry by msgid and msgctxt
     pub fn find_by_msgid_msgctxt(
         &self,
         msgid: &str,
@@ -73,6 +165,7 @@ impl<'a> POFile<'a> {
             .cloned()
     }
 
+    /// Returns the percent of the entries translated in the file
     pub fn percent_translated(&self) -> f32 {
         let translated = self.translated_entries().len();
         let total = self.entries.len();
@@ -83,6 +176,7 @@ impl<'a> POFile<'a> {
         }
     }
 
+    /// Returns references to the translated entries of the file
     pub fn translated_entries(&self) -> Vec<&POEntry> {
         let mut entries: Vec<&POEntry> = Vec::new();
         for entry in &self.entries {
@@ -93,6 +187,7 @@ impl<'a> POFile<'a> {
         entries
     }
 
+    /// Returns references to the untranslated entries of the file
     pub fn untranslated_entries(&self) -> Vec<&POEntry> {
         let mut entries: Vec<&POEntry> = Vec::new();
         for entry in &self.entries {
@@ -103,6 +198,7 @@ impl<'a> POFile<'a> {
         entries
     }
 
+    /// Returns references to the obsolete entries of the file
     pub fn obsolete_entries(&self) -> Vec<&POEntry> {
         let mut entries: Vec<&POEntry> = Vec::new();
         for entry in &self.entries {
@@ -113,6 +209,7 @@ impl<'a> POFile<'a> {
         entries
     }
 
+    /// Returns references to the fuzzy entries of the file
     pub fn fuzzy_entries(&self) -> Vec<&POEntry> {
         let mut entries: Vec<&POEntry> = Vec::new();
         for entry in &self.entries {
@@ -123,6 +220,29 @@ impl<'a> POFile<'a> {
         entries
     }
 
+    /// Returns the metadata of the file as an entry.
+    ///
+    /// This method is not really useful because the
+    /// ``to_string()`` version will not be guranteed to be
+    /// correct.
+    /// 
+    /// If you want to manipulate the metadata, change
+    /// the content of the field `metadata` in the file.
+    ///
+    /// If you still want to render a metadata entry as
+    /// a string, use the function [mo_metadata_entry_to_string]:
+    ///
+    /// ```rust
+    /// use rspolib::{
+    ///     pofile,
+    ///     MOEntry,
+    ///     mo_metadata_entry_to_string,
+    /// };
+    ///
+    /// let file = pofile("tests-data/metadata.po").unwrap();
+    /// let entry = MOEntry::from(&file.metadata_as_entry());
+    /// let entry_str = mo_metadata_entry_to_string(&entry);
+    /// ```
     pub fn metadata_as_entry(&self) -> POEntry {
         let mut entry = POEntry::new(0);
         if self.metadata_is_fuzzy {
@@ -136,18 +256,9 @@ impl<'a> POFile<'a> {
 
         entry
     }
-
-    pub fn save(&self, path: &str) {
-        let mut file = File::create(path).unwrap();
-        file.write_all(self.to_string().as_bytes()).ok();
-    }
-
-    pub fn save_as_pofile(&self, path: &str) {
-        self.save(path);
-    }
 }
 
-impl<'a> fmt::Display for POFile<'a> {
+impl fmt::Display for POFile {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut ret = match self.header {
             Some(ref header) => {
@@ -167,6 +278,9 @@ impl<'a> fmt::Display for POFile<'a> {
         };
 
         // Metadata should not include spaces after values
+        if self.metadata_is_fuzzy {
+            ret.push_str("#, fuzzy\n");
+        }
         ret.push_str(&mo_metadata_entry_to_string(&MOEntry::from(
             &self.metadata_as_entry(),
         )));
@@ -190,27 +304,38 @@ impl<'a> fmt::Display for POFile<'a> {
     }
 }
 
-impl<'a> SaveAsPOFile for POFile<'a> {}
+// the method save_as_pofile is implemented in the trait
+impl SaveAsPOFile for POFile {}
 
-impl<'a> Save for POFile<'a> {
+impl Save for POFile {
+    /// Save the PO file as the given path
     fn save(&self, path: &str) {
         self.save_as_pofile(path);
     }
 }
 
-impl<'a> SaveAsMOFile for POFile<'a> {
+impl SaveAsMOFile for POFile {
+    /// Save the PO file as a MO file as the given path
     fn save_as_mofile(&self, path: &str) {
         MOFile::from(self).save(path);
     }
 }
 
-impl<'a> From<&'a str> for POFile<'a> {
+impl<'a> From<&'a str> for POFile {
     fn from(path_or_content: &'a str) -> Self {
         pofile(path_or_content).unwrap()
     }
 }
 
-impl<'a> Merge for POFile<'a> {
+impl Merge for POFile {
+    /// Merge another PO file into this one and return a new one
+    ///
+    /// Recursively calls `merge` on each entry if they are found
+    /// in the current file searching by msgid and msgctxt. If not
+    /// found, generates a new entry. 
+    ///
+    /// This method is commonly used to merge a POT reference file
+    /// with a PO file.
     fn merge(&mut self, other: POFile) {
         for other_entry in other.entries.as_slice() {
             let entry: Option<POEntry> = match other_entry.msgctxt {
@@ -240,17 +365,46 @@ impl<'a> Merge for POFile<'a> {
     }
 }
 
-impl<'a> AsBytes for POFile<'a> {
+impl AsBytes for POFile {
+    /// Return the PO file content as a bytes vector of the MO file version
+    /// 
+    /// The MO file is encoded with little
+    /// endian magic number and revision number 0
+    ///
+    /// Use directly [MOFile::as_bytes_with] to customize
+    /// the magic number and revision number:
+    ///
+    /// ```rust
+    /// use rspolib::{pofile, MAGIC_SWAPPED, MOFile};
+    ///
+    /// let file = pofile("tests-data/all.po").unwrap();
+    /// let bytes = MOFile::from(&file).as_bytes_with(MAGIC_SWAPPED, 1);
+    /// ```
     fn as_bytes(&self) -> Vec<u8> {
         MOFile::from(self).as_bytes_with(MAGIC, 0)
     }
 
+    /// Return the PO file content as a bytes vector of the MO file version
+    /// 
+    /// Just an alias for [POFile::as_bytes], for consistency with [MOFile].
     fn as_bytes_le(&self) -> Vec<u8> {
         MOFile::from(self).as_bytes_with(MAGIC, 0)
     }
 
+    /// Return the PO file content as a bytes vector of
+    /// the MO file version with big endianess 
     fn as_bytes_be(&self) -> Vec<u8> {
         MOFile::from(self).as_bytes_with(MAGIC_SWAPPED, 0)
+    }
+}
+
+impl From<Vec<&POEntry>> for POFile {
+    fn from(entries: Vec<&POEntry>) -> Self {
+        let mut file = POFile::new("".into());
+        for entry in entries {
+            file.entries.push(entry.clone());
+        }
+        file
     }
 }
 
@@ -258,7 +412,6 @@ impl<'a> AsBytes for POFile<'a> {
 mod tests {
     use super::*;
     use crate::file::mofile::mofile;
-    use std::env;
     use std::fs;
     use std::path::Path;
     use unicode_segmentation::UnicodeSegmentation;
@@ -391,7 +544,7 @@ msgstr \"\"
     }
 
     fn pofile_save_test(save_fn_name: &str, fname: &str) {
-        let tmpdir = env::temp_dir();
+        let tmpdir = "tests-data/tests";
 
         let path = "tests-data/all.po";
         let file = pofile(path).unwrap();
@@ -427,7 +580,7 @@ msgstr \"\"
 
     #[test]
     fn pofile_save_as_mofile() {
-        let tmpdir = env::temp_dir();
+        let tmpdir = "tests-data/tests";
 
         let content =
             concat!("msgid \"foo bar\"\n", "msgstr \"foo bar\"\n",);
@@ -481,6 +634,92 @@ msgstr \"\"
         assert_eq!(
             file.entries[1].to_string(),
             "msgid \"Line\"\nmsgstr \"Ligne\"\n",
+        );
+    }
+
+    #[test]
+    fn format_fuzzy_metadata() {
+        let path = "tests-data/fuzzy-header.po";
+
+        let file = pofile(path).unwrap();
+        let expected_start = concat!(
+            "# Po file with\n# a fuzzy header\n#, fuzzy\n",
+            "msgid \"\"\nmsgstr \"\"\n\"Project-Id-Version:",
+        );
+        assert!(file.to_string().starts_with(expected_start));
+    }
+
+    #[test]
+    fn remove() {
+        let mut entry_1 = POEntry::new(0);
+        entry_1.msgid = "msgid 1".to_string();
+        entry_1.msgstr = Some("msgstr 1".to_string());
+
+        let mut entry_2 = POEntry::new(3);
+        entry_2.msgid = "msgid 2".to_string();
+        entry_2.msgstr = Some("msgstr 2".to_string());
+
+        let mut file = POFile::from(vec![&entry_1, &entry_2]);
+        assert_eq!(file.entries.len(), 2);
+
+        // remove by entry
+        file.remove(&entry_1);
+
+        assert_eq!(file.entries.len(), 1);
+        assert_eq!(file.entries[0].msgid, "msgid 2");
+
+        file.entries.push(entry_1);
+        assert_eq!(file.entries.len(), 2);
+
+        // remove by msgid
+        file.remove_by_msgid("msgid 2");
+        assert_eq!(file.entries.len(), 1);
+        assert_eq!(file.entries[0].msgid, "msgid 1");
+
+        // remove by msgid and msgctxt
+        entry_2.msgctxt = Some("msgctxt 2".to_string());
+        entry_2.msgid = "msgid 1".to_string();
+        file.entries.push(entry_2);
+        assert_eq!(file.entries.len(), 2);
+        file.remove_by_msgid_msgctxt(
+            "msgid 1",
+            "msgctxt 2",
+        );
+
+        assert_eq!(file.entries.len(), 1);
+        assert_eq!(file.entries[0].msgid, "msgid 1");
+        assert_eq!(
+            file.entries[0].msgstr.as_ref().unwrap(),
+            "msgstr 1",
+        );
+    }
+
+    #[test]
+    fn find() {
+        let mut entry_1 = POEntry::new(0);
+        entry_1.msgid = "msgid 1".to_string();
+        entry_1.msgstr = Some("msgstr 1".to_string());
+
+        let mut entry_2 = POEntry::new(3);
+        entry_2.msgid = "msgid 2".to_string();
+        entry_2.msgstr = Some("msgstr 2".to_string());
+
+        let mut file = POFile::from(vec![&entry_1, &entry_2]);
+        assert_eq!(file.entries.len(), 2);
+
+        // find by msgid
+        assert_eq!(file.find_by_msgid("msgid 2").unwrap().msgid, "msgid 2");
+
+        // find by msgid and msgctxt
+        entry_2.msgctxt = Some("msgctxt 2".to_string());
+        entry_2.msgid = "msgid 1".to_string();
+        file.entries.push(entry_2);
+        assert_eq!(file.entries.len(), 3);
+        assert_eq!(
+            file.find_by_msgid_msgctxt("msgid 1", "msgctxt 2")
+                .unwrap()
+                .msgstr.as_ref().unwrap(),
+            "msgstr 2",
         );
     }
 }

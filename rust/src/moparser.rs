@@ -6,12 +6,25 @@ use std::path::Path;
 use crate::bitwise::{as_u32_be, as_u32_le, as_u8_array_le};
 use crate::entry::MOEntry;
 use crate::errors::IOError;
-use crate::file::{mofile::MOFile, Options as FileOptions};
+use crate::file::{mofile::MOFile, FileOptions};
 use crate::traits::SeekRead;
 
-// decimal: 2500072158
+/// Magic number of little endian mo files encoding
+///
+/// Number that when found reading the four first bits read as unsigned
+/// 32 bits little endian of a mo file indicates that the file is in little
+/// endian encoding.
+///
+/// Value as decimal: `2500072158`
 pub const MAGIC: u32 = 0x950412de;
-// decimal: 3725722773
+
+/// Magic number of big endian mo files encoding
+///
+/// Number that when found reading the four first bits read as unsigned
+/// 32 bits little endian of a mo file indicates that the file is in big
+/// endian encoding.
+///
+/// Value as decimal: `3725722773`
 pub const MAGIC_SWAPPED: u32 = 0xde120495;
 
 type MsgsIndex = Vec<(u32, u32)>;
@@ -54,20 +67,20 @@ fn maybe_extract_msgctxt_from_msgid(
     }
 }
 
-pub struct MOFileParser<'a> {
+pub(crate) struct MOFileParser<'a> {
     fhandle: Box<dyn SeekRead + 'a>,
     freader: &'a dyn Fn(&[u8; 4]) -> u32,
 
-    pub file: MOFile<'a>,
+    pub file: MOFile,
 }
 
 impl MOFileParser<'_> {
-    pub fn new(file_options: FileOptions<'_>) -> MOFileParser {
+    pub fn new<'a>(file_options: FileOptions) -> MOFileParser<'a> {
         let mut file = MOFile::new(file_options);
         let fhandle: Box<dyn SeekRead> =
-            match Path::new(file.options.path_or_content).is_file() {
+            match Path::new(&file.options.path_or_content).is_file() {
                 true => Box::new(
-                    File::open(file.options.path_or_content).unwrap(),
+                    File::open(&file.options.path_or_content).unwrap(),
                 ),
                 false => Box::new(Cursor::new(
                     file.options
@@ -326,30 +339,11 @@ impl MOFileParser<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bitwise::{as_u8_array_be, as_u8_array_le};
     use std::fs;
-
-    fn create_binary_content(data: &Vec<u32>, le: bool) -> Vec<u8> {
-        let mut buf: Vec<u8> = vec![];
-        let bytes_reader = match le {
-            true => as_u8_array_le,
-            false => as_u8_array_be,
-        };
-        for d in data {
-            buf.extend(bytes_reader(*d));
-        }
-        buf
-    }
-
-    fn create_corrupted_binary_content(
-        data: &Vec<u32>,
-        le: bool,
-        additional_bytes: &Vec<u8>,
-    ) -> Vec<u8> {
-        let mut buf = create_binary_content(data, le);
-        buf.extend(additional_bytes);
-        buf
-    }
+    use rspolib_testing::{
+        create_binary_content,
+        create_corrupted_binary_content,
+    };
 
     fn all_features_test(parser: &MOFileParser) {
         let po_path = "tests-data/all.po";

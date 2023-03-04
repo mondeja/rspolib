@@ -1,14 +1,24 @@
 use pyo3::prelude::*;
 
-/// Formats the sum of two numbers as string.
-#[pyfunction]
-fn sum_as_string(a: usize, b: usize) -> PyResult<String> {
-    Ok((a + b).to_string())
-}
+mod pymoentry;
+mod pypoentry;
+mod pymofile;
+mod pypofile;
 
-/// A Python module implemented in Rust.
+use crate::pymoentry::PyMOEntry;
+use crate::pypoentry::PyPOEntry;
+use crate::pymofile::{py_mofile, PyMOFile};
+use crate::pypofile::{py_pofile, PyPOFile};
+
 #[pymodule]
-fn python(_py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(sum_as_string, m)?)?;
+#[pyo3(name = "rspolib")]
+fn py_rspolib(_py: Python, m: &PyModule) -> PyResult<()> {
+    //m.add_function(wrap_pyfunction!(sum_as_string, m)?)?;
+    m.add_class::<PyMOEntry>()?;
+    m.add_class::<PyPOEntry>()?;
+    m.add_class::<PyMOFile>()?;
+    m.add_class::<PyPOFile>()?;
+    m.add_function(wrap_pyfunction!(py_pofile, m)?)?;
+    m.add_function(wrap_pyfunction!(py_mofile, m)?)?;
     Ok(())
 }

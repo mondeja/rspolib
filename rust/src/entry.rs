@@ -8,8 +8,6 @@ use crate::escaping::{escape, unescape_except_double_quotes};
 use crate::traits::Merge;
 use crate::twrapper::wrap;
 
-pub trait Entry {}
-
 pub trait Translated {
     fn translated(&self) -> bool;
 }
@@ -20,9 +18,9 @@ pub trait MsgidEotMsgctxt {
 
 // From the MO files spec:
 //
-// Contexts are stored by storing the concatenation of the context,
-// a EOT byte, and the original string
-fn msgid_msgctxt_eot_split(
+// Contexts are stored by storing the concatenation of the
+// context, a EOT byte, and the original string
+fn maybe_msgid_msgctxt_eot_split(
     msgid: &str,
     msgctxt: &Option<String>,
 ) -> String {
@@ -151,6 +149,21 @@ fn mo_entry_to_string(
     )
 }
 
+/// Converts a metadata wrapped by a [MOEntry] to a string
+/// representation.
+///
+/// ```rust
+/// use rspolib::{
+///     mofile,
+///     mo_metadata_entry_to_string,
+/// };
+///
+/// let file = mofile("tests-data/all.mo").unwrap();
+/// let entry = file.metadata_as_entry();
+/// let entry_str = mo_metadata_entry_to_string(&entry);
+/// 
+/// assert!(entry_str.starts_with("msgid \"\"\nmsgstr \"\""));
+/// ```
 pub fn mo_metadata_entry_to_string(entry: &MOEntry) -> String {
     mo_entry_to_string_with_msgstr_formatter(
         entry,
@@ -159,8 +172,6 @@ pub fn mo_metadata_entry_to_string(entry: &MOEntry) -> String {
         &metadata_msgstr_formatter,
     )
 }
-
-// ---
 
 pub struct POStringField<'a> {
     fieldname: &'a str,
@@ -232,14 +243,33 @@ impl<'a> fmt::Display for POStringField<'a> {
     }
 }
 
-// ---
-
-#[derive(Default, Clone, Debug)]
+/// MO file entry representing a message
+///
+/// Unlike PO files, MO files contain only the content
+/// needed to translate a program at runtime, so this
+/// is struct optimized as saves much more memory
+/// than [POEntry].
+///
+/// MO entries ieally contain `msgstr` or the fields
+/// `msgid_plural` and `msgstr_plural as not being `None`.
+/// The logic would be:
+///
+/// - If `msgstr` is not `None`, then the entry is a
+///   translation of a singular form.
+/// - If `msgid_plural` is not `None`, then the entry
+///   is a translation of a plural form contained in 
+///   `msgstr_plural`.
+#[derive(Default, Clone, Debug, PartialEq)]
 pub struct MOEntry {
+    /// untranslated string
     pub msgid: String,
+    /// translated string
     pub msgstr: Option<String>,
+    /// untranslated string for plural form
     pub msgid_plural: Option<String>,
+    /// translated strings for plural form
     pub msgstr_plural: Option<HashMap<String, String>>,
+    /// context
     pub msgctxt: Option<String>,
 }
 
@@ -259,17 +289,33 @@ impl MOEntry {
             msgctxt,
         }
     }
+
+    pub fn to_string_with_wrapwidth(
+        &self,
+        wrapwidth: usize,
+    ) -> String {
+        mo_entry_to_string(self, wrapwidth, "")
+    }
 }
 
-impl Entry for MOEntry {}
-
 impl MsgidEotMsgctxt for MOEntry {
+    /// Returns msgid + EOT + msgctxt
+    ///
+    /// Function required to generate MO files as
+    /// msgid + EOT + msgctxt is used as the key
+    /// for the hash table.
     fn msgid_eot_msgctxt(&self) -> String {
-        msgid_msgctxt_eot_split(&self.msgid, &self.msgctxt)
+        maybe_msgid_msgctxt_eot_split(&self.msgid, &self.msgctxt)
     }
 }
 
 impl Translated for MOEntry {
+    /// Returns `true` if the entry is translated
+    ///
+    /// Really, MO files has only translated entries,
+    /// but this function is here to be consistent
+    /// with the PO implementation and to be used
+    /// when manipulating MOEntry directly.
     fn translated(&self) -> bool {
         if let Some(msgstr) = &self.msgstr {
             return !msgstr.is_empty();
@@ -303,17 +349,22 @@ impl Merge for MOEntry {
 
 impl fmt::Display for MOEntry {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", mo_entry_to_string(self, 78, ""))
+        write!(f, "{}", self.to_string_with_wrapwidth(78))
     }
 }
 
 impl From<&str> for MOEntry {
+    /// Generates a [MOEntry] from a string as the `msgid` 
     fn from(s: &str) -> Self {
         MOEntry::new(s.to_string(), None, None, None, None)
     }
 }
 
 impl From<&POEntry> for MOEntry {
+    /// Generates a [MOEntry] from a [POEntry]
+    ///
+    /// Keep in mind that this conversion loss the information
+    /// that is contained in [POEntry]s but not in [MOEntry]s.
     fn from(entry: &POEntry) -> Self {
         MOEntry {
             msgid: entry.msgid.clone(),
@@ -328,27 +379,66 @@ impl From<&POEntry> for MOEntry {
     }
 }
 
-// ----
-
+/// PO file entry representing a message
+///
+/// This struct contains all the information that is stored
+/// in PO files.
+///
+/// PO entries can contain `msgstr` or the fields
+/// `msgid_plural` and `msgstr_plural as not being `None`.
+/// The logic would be:
+///
+/// - If `msgstr` is not `None`, then the entry is a
+///   translation of a singular form.
+/// - If `msgid_plural` is not `None`, then the entry
+///   is a translation of a plural form contained in
+///   `msgstr_plural`.
+///
+/// The `previous_msgid` and `previous_msgid_plural` fields
+/// are used to store the previous msgid/msgid_plural values
+/// when the entry is obsolete.
+///
+/// The `previous_msgctxt` field is used to store the previous
+/// msgctxt value when the entry is obsolete.
 #[derive(Default, Clone, PartialEq, Debug)]
 pub struct POEntry {
+    /// untranslated string
     pub msgid: String,
+    /// translated string
     pub msgstr: Option<String>,
+    /// untranslated string for plural form
     pub msgid_plural: Option<String>,
+    /// translated strings for plural form
     pub msgstr_plural: HashMap<String, String>,
+    /// context
     pub msgctxt: Option<String>,
+    /// the entry is marked as obsolete
     pub obsolete: bool,
+    /// generated comments for machines 
     pub comment: Option<String>,
+    /// generated comments for translators
     pub tcomment: Option<String>,
+    /// files and lines from which the translations are taken
     pub occurrences: Vec<(String, String)>,
+    /// flags indicating the state, i.e. fuzzy
     pub flags: Vec<String>,
-    pub previous_msgctxt: Option<String>,
+    /// previous untranslated string
     pub previous_msgid: Option<String>,
+    /// previous untranslated string for plural form
     pub previous_msgid_plural: Option<String>,
+    /// previous context
+    pub previous_msgctxt: Option<String>,
+    /// line number in the file or content
     pub linenum: usize,
 }
 
 impl POEntry {
+    /// Creates a new POEntry
+    ///
+    /// It just creates the entry with a given line number.
+    /// This function is used by the parser to initialize new
+    /// entries. Use the `From` traits instead to initialize
+    /// [POEntry]s from strings.
     pub fn new(linenum: usize) -> Self {
         Self {
             msgid: String::new(),
@@ -358,6 +448,7 @@ impl POEntry {
         }
     }
 
+    /// Returns `true` the entry has the `fuzzy` flag
     pub fn fuzzy(&self) -> bool {
         self.flags.contains(&"fuzzy".to_string())
     }
@@ -380,6 +471,7 @@ impl POEntry {
         }
     }
 
+    /// Convert to string with a given wrap width
     pub fn to_string_with_wrapwidth(
         &self,
         wrapwidth: usize,
@@ -493,11 +585,9 @@ impl POEntry {
     }
 }
 
-impl Entry for POEntry {}
-
 impl MsgidEotMsgctxt for POEntry {
     fn msgid_eot_msgctxt(&self) -> String {
-        msgid_msgctxt_eot_split(&self.msgid, &self.msgctxt)
+        maybe_msgid_msgctxt_eot_split(&self.msgid, &self.msgctxt)
     }
 }
 
@@ -586,8 +676,6 @@ impl From<&MOEntry> for POEntry {
         entry
     }
 }
-
-// ----
 
 #[cfg(test)]
 mod tests {
@@ -1092,8 +1180,8 @@ msgstr "msgstr"
         let expected = concat!(
             "msgid \"\"\n",
             "\"  A long long long long long long long long long",
-            " long long long long long \"\n",
-            "\"long msgid\"\n",
+            " long long long long long\"\n",
+            "\" long msgid\"\n",
             "msgstr \"\"\n",
         );
         assert_eq!(entry.to_string(), expected);
@@ -1110,9 +1198,9 @@ msgstr "msgstr"
         let expected = concat!(
             "msgid \"\"\n",
             "\"A long long long long long long",
-            " long long long long long long long long long \"\n",
-            "\"long long long long long long long long long long",
-            " long long long long long \"\n\"long long long long",
+            " long long long long long long long long long\"\n",
+            "\" long long long long long long long long long long",
+            " long long long long long\"\n\" long long long long",
             " long long long long long long long long long long",
             " msgid\"\n",
             "msgstr \"\"\n",
@@ -1129,8 +1217,8 @@ msgstr "msgstr"
         let expected = concat!(
             "msgid \"\"\n",
             "\"A long long long long\\nlong long long long\\n",
-            "long long long\\nlong long long \"\n",
-            "\"long lo\\nng long msgid\"\n",
+            "long long long\\nlong long long\"\n",
+            "\" long lo\\nng long msgid\"\n",
             "msgstr \"\"\n"
         );
         assert_eq!(entry.to_string(), expected);
@@ -1172,7 +1260,7 @@ msgstr "msgstr"
         entry.msgid = "aa\\bb".to_string();
         assert_eq!(
             entry.to_string(),
-            "msgid \"aa\\\\bb\"\nmsgstr \"\"\n",
+            "msgid \"aa\\bb\"\nmsgstr \"\"\n",
         );
     }
 
@@ -1180,10 +1268,26 @@ msgstr "msgstr"
     fn format_wrapping() {
         let path = "tests-data/wrapping.po";
         let file = pofile(path).unwrap();
-
-        let expected = "";
         println!("{}", file.to_string());
-        file.save("foobarout.po");
+
+        let expected = concat!(
+            "# test wrapping\n",
+            "msgid \"\"\n",
+            "msgstr \"\"\n",
+            "\n",
+            "msgid \"This line will not be wrapped\"\n",
+            "msgstr \"\"\n\nmsgid \"\"\n",
+            "\"Some line that contain special characters",
+            " \\\" and that \\t is very, very, very\"\n",
+            "\" long...: %s \\n\"\n",
+            "msgstr \"\"\n",
+            "\n",
+            "msgid \"\"\n",
+            "\"Some line that contain special characters",
+            " \\\"foobar\\\" and that contains\"\n",
+            "\" whitespace at the end          \"\n",
+            "msgstr \"\"\n"
+        );
         assert_eq!(file.to_string(), expected);
     }
 }
