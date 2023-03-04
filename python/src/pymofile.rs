@@ -183,4 +183,8 @@ impl PyMOFile {
     fn __eq__(&self, other: &PyMOFile) -> PyResult<bool> {
         Ok(self.0 == other.0)
     }
+
+    fn __ne__(&self, other: &PyMOFile) -> PyResult<bool> {
+        Ok(self.0 != other.0)
+    }
 }

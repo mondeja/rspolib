@@ -1268,7 +1268,6 @@ msgstr "msgstr"
     fn format_wrapping() {
         let path = "tests-data/wrapping.po";
         let file = pofile(path).unwrap();
-        println!("{}", file.to_string());
 
         let expected = concat!(
             "# test wrapping\n",

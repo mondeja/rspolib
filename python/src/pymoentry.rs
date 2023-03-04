@@ -121,10 +121,22 @@ impl PyMOEntry {
         self.0.merge(other.0.clone());
         Ok(())
     }
+
+    fn __str__(&self) -> PyResult<String> {
+        Ok(self.0.to_string())
+    }
+
+    fn __eq__(&self, other: &PyMOEntry) -> PyResult<bool> {
+        Ok(self.0 == other.0)
+    }
+
+    fn __ne__(&self, other: &PyMOEntry) -> PyResult<bool> {
+        Ok(self.0 != other.0)
+    }
 }
 
 impl From<&MOEntry> for PyMOEntry {
-    fn from(poentry: &MOEntry) -> Self {
-        PyMOEntry(poentry.clone())
+    fn from(entry: &MOEntry) -> Self {
+        PyMOEntry(entry.clone())
     }
 }

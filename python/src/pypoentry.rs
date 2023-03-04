@@ -252,10 +252,22 @@ impl PyPOEntry {
         self.0.merge(other.0.clone());
         Ok(())
     }
+
+    fn __str__(&self) -> PyResult<String> {
+        Ok(self.0.to_string())
+    }
+
+    fn __eq__(&self, other: &PyPOEntry) -> PyResult<bool> {
+        Ok(self.0 == other.0)
+    }
+
+    fn __ne__(&self, other: &PyPOEntry) -> PyResult<bool> {
+        Ok(self.0 != other.0)
+    }
 }
 
 impl From<&POEntry> for PyPOEntry {
-    fn from(poentry: &POEntry) -> Self {
-        PyPOEntry(poentry.clone())
+    fn from(entry: &POEntry) -> Self {
+        PyPOEntry(entry.clone())
     }
 }

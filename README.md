@@ -2,7 +2,7 @@
 
 [![crates.io](https://img.shields.io/crates/v/rspolib?logo=rust)](https://crates.io/crates/rspolib) [![docs.rs](https://img.shields.io/docsrs/rspolib?logo=docs.rs)](https://docs.rs/rspolib)
 
-Port to Rust of the Python library [polib]
+Port to Rust of the Python library [polib].
 
 ## Install
 
