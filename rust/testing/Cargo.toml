@@ -2,6 +2,8 @@
 name = "rspolib-testing"
 version = "0.0.1"
 edition = "2021"
+description = "Testing utilities for rspolib."
+license = "MIT"
 
 [lib]
 name = "rspolib_testing"

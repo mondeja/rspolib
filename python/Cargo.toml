@@ -3,6 +3,8 @@ name = "py-rspolib"
 version = "0.0.1"
 edition = "2021"
 readme = "README.md"
+description = "Python bindings for the Rust crate rspolib."
+license = "MIT"
 
 [lib]
 name = "rspolib"

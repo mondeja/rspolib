@@ -3,6 +3,8 @@ name = "rspolib"
 version = "0.0.1"
 edition = "2021"
 readme = "../README.md"
+description = "PO and MO files manipulation library."
+license = "MIT"
 
 [lib]
 name = "rspolib"
