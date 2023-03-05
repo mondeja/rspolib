@@ -562,16 +562,13 @@ fn handle_mx(parser: &mut POFileParser) {
     );
     let msgstr_plural_length =
         parser.current_entry.msgstr_plural.len();
-    if parser.msgstr_index > msgstr_plural_length {
-        for _ in 0..parser.msgstr_index - msgstr_plural_length {
+    if parser.msgstr_index + 1 > msgstr_plural_length {
+        for _ in 0..parser.msgstr_index + 1 - msgstr_plural_length {
             parser.current_entry.msgstr_plural.push("".to_string());
         }
     }
 
-    parser
-        .current_entry
-        .msgstr_plural
-        .insert(parser.msgstr_index, value);
+    parser.current_entry.msgstr_plural[parser.msgstr_index] = value;
 }
 
 fn handle_mc(parser: &mut POFileParser) {
