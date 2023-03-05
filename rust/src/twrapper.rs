@@ -22,7 +22,6 @@ fn get_linebreaks(
     let mut accum_char_bindex = 0;
     let mut accum_char_width = 0; // bindex, width
     let mut last_break_width = 0;
-    let mut prev_end_whitespaces = 0;
 
     for (lbi, (lb, _)) in linebreaks.iter().enumerate() {
         let range = accum_char_width..*lb;
@@ -36,42 +35,15 @@ fn get_linebreaks(
         }
         let (next_lb, _) = linebreaks[lbi + 1];
 
-        let mut lb_bindex = *lb;
-
         let mut partial_accum_width = accum_char_width;
-        let mut partial_accum_bindex = accum_char_bindex;
         for i in accum_char_bindex..next_lb {
             if let Some(width) = char_indices_widths.get(&i) {
                 partial_accum_width += width;
-                partial_accum_bindex = i;
-            }
-        }
-        if lbi + 1 == linebreaks.len() - 1 {
-            if prev_end_whitespaces > 0 {
-                lb_bindex -= prev_end_whitespaces;
-                partial_accum_width -= prev_end_whitespaces;
-            }
-        } else {
-            // Don't break on whitespace, keep it in the next line
-            // This is the same behaviour that gettext has
-            if text[partial_accum_bindex..].starts_with(' ') {
-                prev_end_whitespaces = 0;
-                for ch in
-                    text[..partial_accum_bindex + 1].chars().rev()
-                {
-                    if ch.is_ascii_whitespace() {
-                        partial_accum_width -= 1;
-                        lb_bindex -= 1;
-                        prev_end_whitespaces += 1;
-                    } else {
-                        break;
-                    }
-                }
             }
         }
         let width = partial_accum_width - last_break_width;
         if width > wrapwidth {
-            ret.push(lb_bindex);
+            ret.push(*lb);
             last_break_width = accum_char_width;
         }
     }
@@ -109,12 +81,12 @@ mod tests {
         assert_eq!(
             wrapped,
             vec![
-                "This is a",
-                " test of",
-                " the",
-                " emergency",
-                " broadcast",
-                " system."
+                "This is ",
+                "a test ",
+                "of the ",
+                "emergency ",
+                "broadcast ",
+                "system."
             ]
         );
     }
@@ -135,11 +107,11 @@ mod tests {
         assert_eq!(
             wrapped,
             vec![
-                "Thislineisverylongbutmustnotbebroken",
-                " breaks",
-                " should",
-                " be",
-                " here."
+                "Thislineisverylongbutmustnotbebroken ",
+                "breaks ",
+                "should ",
+                "be ",
+                "here."
             ]
         );
     }
@@ -150,7 +122,7 @@ mod tests {
         let wrapped = wrap(text, 7);
         assert_eq!(
             wrapped,
-            vec!["123Ááé", " aabbcc", " ÁáééÚí", " aabbcc"]
+            vec!["123Ááé ", "aabbcc ", "ÁáééÚí ", "aabbcc"]
         );
     }
 }

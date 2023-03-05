@@ -46,6 +46,13 @@ pub trait SaveAsMOFile {
     fn save_as_mofile(&self, path: &str);
 }
 
+/// Provides functions to convert to MO files content as bytes
+///
+/// * `as_bytes` method as an alias to `as_bytes_le`.
+/// * `as_bytes_le` method to return the content as bytes in
+///   little endian byte order.
+/// * `as_bytes_be` method to return the content as bytes in
+///   big endian byte order.
 pub trait AsBytes {
     /// Return the content as bytes
     fn as_bytes(&self) -> Vec<u8>;

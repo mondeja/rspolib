@@ -18,10 +18,11 @@ def test_format(runner, tests_dir):
     pypo = polib.mofile(f"{tests_dir}/all.mo")
 
     def format_as_string(polib):
+        prefix = "#\n" if polib.__name__ == "rspolib" else ""
         assert (
             (rspo if polib.__name__ == "rspolib" else pypo)
             .__str__()
-            .startswith('msgid ""\n')
+            .startswith(f'{prefix}msgid ""\n')
         )
 
     runner.run(

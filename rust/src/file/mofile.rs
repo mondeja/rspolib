@@ -273,8 +273,10 @@ impl MOFile {
 
 impl fmt::Display for MOFile {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut ret =
-            mo_metadata_entry_to_string(&self.metadata_as_entry());
+        let mut ret = String::from("#\n");
+        ret.push_str(&mo_metadata_entry_to_string(
+            &self.metadata_as_entry(),
+        ));
 
         ret.push('\n');
         for entry in &self.entries {
@@ -351,7 +353,7 @@ mod tests {
     use std::fs;
     use std::io::Read;
     use std::path::Path;
-    use unicode_segmentation::UnicodeSegmentation;
+    use unicode_width::UnicodeWidthStr;
 
     #[test]
     fn mofile_test() {
@@ -389,8 +391,8 @@ mod tests {
         let file_as_string = file.to_string();
 
         for line in file_as_string.lines() {
-            let n_chars = line.graphemes(true).count();
-            assert!(n_chars <= file.options.wrapwidth + 2);
+            let width = UnicodeWidthStr::width(line);
+            assert!(width <= file.options.wrapwidth + 2);
         }
     }
 

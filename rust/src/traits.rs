@@ -1,3 +1,4 @@
+/// Merge entries and files
 pub trait Merge {
     /// Merge a struct with another of the same type
     fn merge(&mut self, other: Self);

@@ -1,5 +1,6 @@
 use pyo3::prelude::*;
 
+mod exceptions;
 mod pymoentry;
 mod pymofile;
 mod pypoentry;
@@ -12,13 +13,19 @@ use crate::pypofile::{py_pofile, PyPOFile};
 
 #[pymodule]
 #[pyo3(name = "rspolib")]
-fn py_rspolib(_py: Python, m: &PyModule) -> PyResult<()> {
-    //m.add_function(wrap_pyfunction!(sum_as_string, m)?)?;
+fn py_rspolib(py: Python, m: &PyModule) -> PyResult<()> {
+    // Classes
     m.add_class::<PyMOEntry>()?;
     m.add_class::<PyPOEntry>()?;
     m.add_class::<PyMOFile>()?;
     m.add_class::<PyPOFile>()?;
+
+    // Functions
     m.add_function(wrap_pyfunction!(py_pofile, m)?)?;
     m.add_function(wrap_pyfunction!(py_mofile, m)?)?;
+
+    // Exceptions
+    m.add("IOError", py.get_type::<exceptions::IOError>())?;
+    m.add("SyntaxError", py.get_type::<exceptions::SyntaxError>())?;
     Ok(())
 }

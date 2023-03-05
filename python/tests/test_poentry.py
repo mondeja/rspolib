@@ -58,15 +58,18 @@ def test_methods(runner):
         )
         assert entry.to_string_with_wrapwidth(8) == (
             """msgid ""
+"msgid "
+"1 "
+"msgid "
+"1 "
 "msgid 1"
-" msgid 1"
-" msgid 1"
 msgstr ""
-"msgstr"
-" 1"
-" msgstr"
-" 1"
-" msgstr 1"
+"msgstr "
+"1 "
+"msgstr "
+"1 "
+"msgstr "
+"1"
 """
         )
 

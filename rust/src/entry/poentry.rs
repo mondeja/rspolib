@@ -1,383 +1,14 @@
 use std::collections::HashMap;
 use std::fmt;
 
-use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
 
-use crate::escaping::{escape, unescape_except_double_quotes};
+use crate::entry::{
+    maybe_msgid_msgctxt_eot_split, mo_entry_to_string, MOEntry,
+    MsgidEotMsgctxt, POStringField, Translated,
+};
 use crate::traits::Merge;
 use crate::twrapper::wrap;
-
-pub trait Translated {
-    fn translated(&self) -> bool;
-}
-
-pub trait MsgidEotMsgctxt {
-    fn msgid_eot_msgctxt(&self) -> String;
-}
-
-// From the MO files spec:
-//
-// Contexts are stored by storing the concatenation of the
-// context, a EOT byte, and the original string
-fn maybe_msgid_msgctxt_eot_split(
-    msgid: &str,
-    msgctxt: &Option<String>,
-) -> String {
-    if let Some(ctx) = msgctxt {
-        let mut ret = String::from(ctx);
-        ret.push('\u{4}');
-        ret.push_str(msgid);
-        ret
-    } else {
-        msgid.to_string()
-    }
-}
-
-fn metadata_msgstr_formatter(
-    msgstr: &str,
-    _: &str,
-    _: usize,
-) -> String {
-    let mut ret = String::from("msgstr \"\"\n");
-    for line in msgstr.lines() {
-        ret.push('"');
-        ret.push_str(line);
-        ret.push_str(r"\n");
-        ret.push('"');
-        ret.push('\n');
-    }
-    ret
-}
-
-fn default_mo_entry_msgstr_formatter(
-    msgstr: &str,
-    delflag: &str,
-    wrapwidth: usize,
-) -> String {
-    POStringField::new(
-        "msgstr",
-        delflag,
-        msgstr.trim_end(),
-        "",
-        wrapwidth,
-    )
-    .to_string()
-}
-
-fn mo_entry_to_string_with_msgstr_formatter(
-    entry: &MOEntry,
-    wrapwidth: usize,
-    delflag: &str,
-    msgstr_formatter: &dyn Fn(&str, &str, usize) -> String,
-) -> String {
-    let mut ret = String::new();
-
-    if let Some(msgctxt) = &entry.msgctxt {
-        ret.push_str(
-            &POStringField::new(
-                "msgctxt", delflag, msgctxt, "", wrapwidth,
-            )
-            .to_string(),
-        );
-    }
-
-    ret.push_str(
-        &POStringField::new(
-            "msgid",
-            delflag,
-            &entry.msgid,
-            "",
-            wrapwidth,
-        )
-        .to_string(),
-    );
-
-    if let Some(msgid_plural) = &entry.msgid_plural {
-        ret.push_str(
-            &POStringField::new(
-                "msgid_plural",
-                delflag,
-                msgid_plural,
-                "",
-                wrapwidth,
-            )
-            .to_string(),
-        );
-    }
-
-    if let Some(msgstr_plural) = &entry.msgstr_plural {
-        let mut indexes =
-            msgstr_plural.keys().collect::<Vec<&String>>();
-        indexes.sort();
-
-        for index in indexes.iter() {
-            let msgstr = match msgstr_plural.get(*index) {
-                Some(msgstr) => msgstr,
-                None => "",
-            };
-            ret.push_str(
-                &POStringField::new(
-                    "msgstr", delflag, msgstr, index, wrapwidth,
-                )
-                .to_string(),
-            );
-        }
-    } else {
-        let msgstr = match &entry.msgstr {
-            Some(msgstr) => msgstr,
-            None => "",
-        };
-        let formatted_msgstr =
-            msgstr_formatter(msgstr, delflag, wrapwidth);
-        ret.push_str(&formatted_msgstr);
-    }
-
-    ret
-}
-
-fn mo_entry_to_string(
-    entry: &MOEntry,
-    wrapwidth: usize,
-    delflag: &str,
-) -> String {
-    mo_entry_to_string_with_msgstr_formatter(
-        entry,
-        wrapwidth,
-        delflag,
-        &default_mo_entry_msgstr_formatter,
-    )
-}
-
-/// Converts a metadata wrapped by a [MOEntry] to a string
-/// representation.
-///
-/// ```rust
-/// use rspolib::{
-///     mofile,
-///     mo_metadata_entry_to_string,
-/// };
-///
-/// let file = mofile("tests-data/all.mo").unwrap();
-/// let entry = file.metadata_as_entry();
-/// let entry_str = mo_metadata_entry_to_string(&entry);
-///
-/// assert!(entry_str.starts_with("msgid \"\"\nmsgstr \"\""));
-/// ```
-pub fn mo_metadata_entry_to_string(entry: &MOEntry) -> String {
-    mo_entry_to_string_with_msgstr_formatter(
-        entry,
-        78,
-        "",
-        &metadata_msgstr_formatter,
-    )
-}
-
-pub(crate) struct POStringField<'a> {
-    fieldname: &'a str,
-    delflag: &'a str,
-    value: &'a str,
-    plural_index: &'a str,
-    wrapwidth: usize,
-}
-
-impl<'a> POStringField<'a> {
-    pub fn new(
-        fieldname: &'a str,
-        delflag: &'a str,
-        value: &'a str,
-        plural_index: &'a str,
-        wrapwidth: usize,
-    ) -> Self {
-        Self {
-            fieldname,
-            delflag,
-            value,
-            plural_index,
-            wrapwidth,
-        }
-    }
-}
-
-impl<'a> fmt::Display for POStringField<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut lines = vec!["".to_string()];
-        let escaped_value = escape(self.value);
-
-        let repr_plural_index = match self.plural_index.is_empty() {
-            false => format!("[{}]", self.plural_index),
-            true => "".to_string(),
-        };
-
-        // +1 here because of the space between fieldname and value
-        let real_width =
-            UnicodeWidthStr::width(escaped_value.as_str())
-                + UnicodeWidthStr::width(self.fieldname)
-                + 1;
-        if real_width > self.wrapwidth {
-            let new_lines = wrap(&escaped_value, self.wrapwidth);
-            lines.extend(new_lines);
-        } else {
-            lines = vec![escaped_value];
-        }
-
-        // format first line
-        let mut ret = format!(
-            "{}{}{} \"{}\"\n",
-            self.delflag,
-            self.fieldname,
-            repr_plural_index,
-            unescape_except_double_quotes(&lines.remove(0)),
-        );
-
-        // format other lines
-        for line in lines {
-            ret.push_str(&format!(
-                "{}\"{}\"\n",
-                self.delflag,
-                unescape_except_double_quotes(&line)
-            ));
-        }
-
-        write!(f, "{}", ret)
-    }
-}
-
-/// MO file entry representing a message
-///
-/// Unlike PO files, MO files contain only the content
-/// needed to translate a program at runtime, so this
-/// is struct optimized as saves much more memory
-/// than [POEntry].
-///
-/// MO entries ieally contain `msgstr` or the fields
-/// `msgid_plural` and `msgstr_plural as not being `None`.
-/// The logic would be:
-///
-/// - If `msgstr` is not `None`, then the entry is a
-///   translation of a singular form.
-/// - If `msgid_plural` is not `None`, then the entry
-///   is a translation of a plural form contained in
-///   `msgstr_plural`.
-#[derive(Default, Clone, Debug, PartialEq)]
-pub struct MOEntry {
-    /// untranslated string
-    pub msgid: String,
-    /// translated string
-    pub msgstr: Option<String>,
-    /// untranslated string for plural form
-    pub msgid_plural: Option<String>,
-    /// translated strings for plural form
-    pub msgstr_plural: Option<HashMap<String, String>>,
-    /// context
-    pub msgctxt: Option<String>,
-}
-
-impl MOEntry {
-    pub fn new(
-        msgid: String,
-        msgstr: Option<String>,
-        msgid_plural: Option<String>,
-        msgstr_plural: Option<HashMap<String, String>>,
-        msgctxt: Option<String>,
-    ) -> MOEntry {
-        MOEntry {
-            msgid,
-            msgstr,
-            msgid_plural,
-            msgstr_plural,
-            msgctxt,
-        }
-    }
-
-    pub fn to_string_with_wrapwidth(
-        &self,
-        wrapwidth: usize,
-    ) -> String {
-        mo_entry_to_string(self, wrapwidth, "")
-    }
-}
-
-impl MsgidEotMsgctxt for MOEntry {
-    /// Returns msgid + EOT + msgctxt
-    ///
-    /// Function required to generate MO files as
-    /// msgid + EOT + msgctxt is used as the key
-    /// for the hash table.
-    fn msgid_eot_msgctxt(&self) -> String {
-        maybe_msgid_msgctxt_eot_split(&self.msgid, &self.msgctxt)
-    }
-}
-
-impl Translated for MOEntry {
-    /// Returns `true` if the entry is translated
-    ///
-    /// Really, MO files has only translated entries,
-    /// but this function is here to be consistent
-    /// with the PO implementation and to be used
-    /// when manipulating MOEntry directly.
-    fn translated(&self) -> bool {
-        if let Some(msgstr) = &self.msgstr {
-            return !msgstr.is_empty();
-        }
-
-        if let Some(msgstr_plural) = &self.msgstr_plural {
-            if msgstr_plural.is_empty() {
-                return false;
-            }
-            for msgstr in msgstr_plural.values() {
-                if msgstr.is_empty() {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        false
-    }
-}
-
-impl Merge for MOEntry {
-    fn merge(&mut self, other: Self) {
-        self.msgid = other.msgid;
-        self.msgstr = other.msgstr;
-        self.msgid_plural = other.msgid_plural;
-        self.msgstr_plural = other.msgstr_plural;
-        self.msgctxt = other.msgctxt;
-    }
-}
-
-impl fmt::Display for MOEntry {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.to_string_with_wrapwidth(78))
-    }
-}
-
-impl From<&str> for MOEntry {
-    /// Generates a [MOEntry] from a string as the `msgid`
-    fn from(s: &str) -> Self {
-        MOEntry::new(s.to_string(), None, None, None, None)
-    }
-}
-
-impl From<&POEntry> for MOEntry {
-    /// Generates a [MOEntry] from a [POEntry]
-    ///
-    /// Keep in mind that this conversion loss the information
-    /// that is contained in [POEntry]s but not in [MOEntry]s.
-    fn from(entry: &POEntry) -> Self {
-        MOEntry {
-            msgid: entry.msgid.clone(),
-            msgstr: entry.msgstr.clone(),
-            msgid_plural: entry.msgid_plural.clone(),
-            msgstr_plural: match entry.msgstr_plural.is_empty() {
-                true => None,
-                false => Some(entry.msgstr_plural.clone()),
-            },
-            msgctxt: entry.msgctxt.clone(),
-        }
-    }
-}
 
 /// PO file entry representing a message
 ///
@@ -385,7 +16,7 @@ impl From<&POEntry> for MOEntry {
 /// in PO files.
 ///
 /// PO entries can contain `msgstr` or the fields
-/// `msgid_plural` and `msgstr_plural as not being `None`.
+/// `msgid_plural` and `msgstr_plural` as not being `None`.
 /// The logic would be:
 ///
 /// - If `msgstr` is not `None`, then the entry is a
@@ -395,11 +26,11 @@ impl From<&POEntry> for MOEntry {
 ///   `msgstr_plural`.
 ///
 /// The `previous_msgid` and `previous_msgid_plural` fields
-/// are used to store the previous msgid/msgid_plural values
-/// when the entry is obsolete.
+/// are used to store the previous `msgid` and `msgid_plural`
+/// values when the entry is obsolete.
 ///
 /// The `previous_msgctxt` field is used to store the previous
-/// msgctxt value when the entry is obsolete.
+/// `msgctxt` value when the entry is obsolete.
 #[derive(Default, Clone, PartialEq, Debug)]
 pub struct POEntry {
     /// untranslated string
@@ -461,7 +92,7 @@ impl POEntry {
         target: &mut String,
     ) {
         for line in comment.lines() {
-            if line.graphemes(true).count() + 2 > wrapwidth {
+            if UnicodeWidthStr::width(line) + 2 > wrapwidth {
                 target.push_str(&wrap(line, wrapwidth - 2).join("\n"))
             } else {
                 target.push_str(prefix);
@@ -505,7 +136,9 @@ impl POEntry {
                 })
                 .collect::<Vec<String>>()
                 .join(" ");
-            if files_repr.graphemes(true).count() + 3 > wrapwidth {
+            if UnicodeWidthStr::width(files_repr.as_str()) + 3
+                > wrapwidth
+            {
                 let wrapped = wrap(&files_repr, wrapwidth - 3)
                     .iter()
                     .map(|s| format!("#: {}", s))
@@ -680,192 +313,7 @@ impl From<&MOEntry> for POEntry {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::file::pofile::pofile;
-
-    #[test]
-    fn moentry_constructor() {
-        let moentry = MOEntry::new(
-            "msgid".to_string(),
-            Some("msgstr".to_string()),
-            None,
-            None,
-            None,
-        );
-
-        assert_eq!(moentry.msgid, "msgid");
-        assert_eq!(moentry.msgstr, Some("msgstr".to_string()));
-        assert_eq!(moentry.msgid_plural, None);
-        assert_eq!(moentry.msgstr_plural, None);
-        assert_eq!(moentry.msgctxt, None);
-    }
-
-    #[test]
-    fn moentry_translated() {
-        // empty msgstr means untranslated
-        let moentry = MOEntry::new(
-            "msgid".to_string(),
-            Some("".to_string()),
-            None,
-            None,
-            None,
-        );
-        assert_eq!(moentry.translated(), false);
-
-        let moentry = MOEntry::new(
-            "msgid".to_string(),
-            Some("msgstr".to_string()),
-            None,
-            None,
-            None,
-        );
-        assert_eq!(moentry.translated(), true);
-
-        // empty msgstr_plural means untranslated
-        let moentry = MOEntry::new(
-            "msgid".to_string(),
-            None,
-            None,
-            Some(HashMap::new()),
-            None,
-        );
-        assert_eq!(moentry.translated(), false);
-
-        // empty msgstr in msgstr_plural means untranslated
-        let moentry = MOEntry::new(
-            "msgid".to_string(),
-            None,
-            None,
-            Some(HashMap::from([("0".to_string(), "".to_string())])),
-            None,
-        );
-        assert_eq!(moentry.translated(), false);
-
-        let moentry = MOEntry::new(
-            "msgid".to_string(),
-            None,
-            None,
-            Some(
-                // doesn't matter if has an invalid index
-                HashMap::from([(
-                    "4".to_string(),
-                    "msgstr_plural".to_string(),
-                )]),
-            ),
-            None,
-        );
-        assert_eq!(moentry.translated(), true);
-    }
-
-    #[test]
-    fn moentry_merge() {
-        let mut moentry = MOEntry::new(
-            "msgid".to_string(),
-            Some("msgstr".to_string()),
-            Some("msgid_plural".to_string()),
-            Some(HashMap::from([(
-                "0".to_string(),
-                "msgstr_plural".to_string(),
-            )])),
-            Some("msgctxt".to_string()),
-        );
-        let other = MOEntry::new(
-            "other_msgid".to_string(),
-            Some("other_msgstr".to_string()),
-            Some("other_msgid_plural".to_string()),
-            Some(HashMap::from([(
-                "4".to_string(),
-                "other_msgstr_plural".to_string(),
-            )])),
-            Some("other_msgctxt".to_string()),
-        );
-
-        moentry.merge(other);
-
-        assert_eq!(moentry.msgid, "other_msgid");
-        assert_eq!(moentry.msgstr, Some("other_msgstr".to_string()));
-        assert_eq!(
-            moentry.msgid_plural,
-            Some("other_msgid_plural".to_string())
-        );
-        assert_eq!(
-            moentry.msgstr_plural,
-            Some(HashMap::from([(
-                "4".to_string(),
-                "other_msgstr_plural".to_string()
-            )]))
-        );
-        assert_eq!(
-            moentry.msgctxt,
-            Some("other_msgctxt".to_string())
-        );
-    }
-
-    #[test]
-    fn moentry_to_string() {
-        // with msgid_plural
-        let moentry = MOEntry::new(
-            "msgid".to_string(),
-            Some("msgstr".to_string()),
-            Some("msgid_plural".to_string()),
-            Some(HashMap::from([(
-                "0".to_string(),
-                "msgstr_plural".to_string(),
-            )])),
-            Some("msgctxt".to_string()),
-        );
-
-        let expected = r#"msgctxt "msgctxt"
-msgid "msgid"
-msgid_plural "msgid_plural"
-msgstr[0] "msgstr_plural"
-"#
-        .to_string();
-
-        assert_eq!(moentry.to_string(), expected);
-
-        // with msgstr
-        let moentry = MOEntry::new(
-            "msgid".to_string(),
-            Some("msgstr".to_string()),
-            None,
-            None,
-            Some("msgctxt".to_string()),
-        );
-
-        let expected = r#"msgctxt "msgctxt"
-msgid "msgid"
-msgstr "msgstr"
-"#
-        .to_string();
-
-        assert_eq!(moentry.to_string(), expected);
-    }
-
-    #[test]
-    fn moentry_from_poentry() {
-        let msgstr_plural = HashMap::from([(
-            "0".to_string(),
-            "msgstr_plural".to_string(),
-        )]);
-
-        let mut poentry = POEntry::new(0);
-        poentry.msgid = "msgid".to_string();
-        poentry.msgstr = Some("msgstr".to_string());
-        poentry.msgid_plural = Some("msgid_plural".to_string());
-        poentry.msgstr_plural = msgstr_plural.clone();
-        poentry.msgctxt = Some("msgctxt".to_string());
-
-        let moentry = MOEntry::from(&poentry);
-
-        assert_eq!(moentry.msgid, "msgid");
-        assert_eq!(moentry.msgstr, Some("msgstr".to_string()));
-        assert_eq!(
-            moentry.msgid_plural,
-            Some("msgid_plural".to_string())
-        );
-        assert_eq!(moentry.msgstr_plural, Some(msgstr_plural));
-        assert_eq!(moentry.msgctxt, Some("msgctxt".to_string()));
-    }
+    use crate::pofile;
 
     #[test]
     fn poentry_constructor() {
@@ -1180,8 +628,8 @@ msgstr "msgstr"
         let expected = concat!(
             "msgid \"\"\n",
             "\"  A long long long long long long long long long",
-            " long long long long long\"\n",
-            "\" long msgid\"\n",
+            " long long long long long \"\n",
+            "\"long msgid\"\n",
             "msgstr \"\"\n",
         );
         assert_eq!(entry.to_string(), expected);
@@ -1198,9 +646,9 @@ msgstr "msgstr"
         let expected = concat!(
             "msgid \"\"\n",
             "\"A long long long long long long",
-            " long long long long long long long long long\"\n",
-            "\" long long long long long long long long long long",
-            " long long long long long\"\n\" long long long long",
+            " long long long long long long long long long \"\n",
+            "\"long long long long long long long long long long",
+            " long long long long long \"\n\"long long long long",
             " long long long long long long long long long long",
             " msgid\"\n",
             "msgstr \"\"\n",
@@ -1217,8 +665,8 @@ msgstr "msgstr"
         let expected = concat!(
             "msgid \"\"\n",
             "\"A long long long long\\nlong long long long\\n",
-            "long long long\\nlong long long\"\n",
-            "\" long lo\\nng long msgid\"\n",
+            "long long long\\nlong long long \"\n",
+            "\"long lo\\nng long msgid\"\n",
             "msgstr \"\"\n"
         );
         assert_eq!(entry.to_string(), expected);
@@ -1275,16 +723,16 @@ msgstr "msgstr"
             "msgstr \"\"\n",
             "\n",
             "msgid \"This line will not be wrapped\"\n",
-            "msgstr \"\"\n\nmsgid \"\"\n",
-            "\"Some line that contain special characters",
-            " \\\" and that \\t is very, very, very\"\n",
-            "\" long...: %s \\n\"\n",
             "msgstr \"\"\n",
-            "\n",
-            "msgid \"\"\n",
+            "\nmsgid \"\"\n",
             "\"Some line that contain special characters",
-            " \\\"foobar\\\" and that contains\"\n",
-            "\" whitespace at the end          \"\n",
+            " \\\" and that \\t is very, very, \"\n",
+            "\"very long...: %s \\n\"\n",
+            "msgstr \"\"\n",
+            "\nmsgid \"\"\n",
+            "\"Some line that contain special characters",
+            " \\\"foobar\\\" and that contains \"\n",
+            "\"whitespace at the end          \"\n",
             "msgstr \"\"\n"
         );
         assert_eq!(file.to_string(), expected);

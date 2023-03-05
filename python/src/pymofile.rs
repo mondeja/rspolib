@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use pyo3::prelude::*;
 
+use crate::exceptions;
 use crate::pymoentry::PyMOEntry;
 use rspolib::{
     mofile, AsBytes, FileOptions, MOFile, Save, SaveAsMOFile,
@@ -20,9 +21,7 @@ pub fn py_mofile(
     match result {
         Ok(mofile) => Ok(PyMOFile(mofile)),
         Err(e) => {
-            Err(PyErr::new::<pyo3::exceptions::PyException, _>(
-                e.to_string(),
-            ))
+            Err(PyErr::new::<exceptions::IOError, _>(e.to_string()))
         }
     }
 }

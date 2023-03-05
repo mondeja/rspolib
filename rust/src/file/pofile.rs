@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::fmt;
 
 use crate::entry::{
-    mo_metadata_entry_to_string, MOEntry, POEntry, Translated,
+    po_metadata_entry_to_string, POEntry, Translated,
 };
 use crate::errors::SyntaxError;
 use crate::file::{
@@ -222,25 +222,25 @@ impl POFile {
     /// Returns the metadata of the file as an entry.
     ///
     /// This method is not really useful because the
-    /// ``to_string()`` version will not be guranteed to be
+    /// ``to_string()`` version will not be guaranteed to be
     /// correct.
     ///
     /// If you want to manipulate the metadata, change
     /// the content of the field `metadata` in the file.
     ///
     /// If you still want to render a metadata entry as
-    /// a string, use the function [mo_metadata_entry_to_string]:
+    /// a string, use the function [po_metadata_entry_to_string]:
     ///
     /// ```rust
     /// use rspolib::{
     ///     pofile,
-    ///     MOEntry,
-    ///     mo_metadata_entry_to_string,
+    ///     po_metadata_entry_to_string,
     /// };
     ///
     /// let file = pofile("tests-data/metadata.po").unwrap();
-    /// let entry = MOEntry::from(&file.metadata_as_entry());
-    /// let entry_str = mo_metadata_entry_to_string(&entry);
+    /// let entry = file.metadata_as_entry();
+    /// let entry_str = po_metadata_entry_to_string(&entry, true);
+    /// assert!(entry_str.starts_with("#, fuzzy\nmsgid \"\""));
     /// ```
     pub fn metadata_as_entry(&self) -> POEntry {
         let mut entry = POEntry::new(0);
@@ -273,16 +273,14 @@ impl fmt::Display for POFile {
                 }
                 header_repr
             }
-            None => "".to_string(),
+            None => "#\n".to_string(),
         };
 
         // Metadata should not include spaces after values
-        if self.metadata_is_fuzzy {
-            ret.push_str("#, fuzzy\n");
-        }
-        ret.push_str(&mo_metadata_entry_to_string(&MOEntry::from(
+        ret.push_str(&po_metadata_entry_to_string(
             &self.metadata_as_entry(),
-        )));
+            self.metadata_is_fuzzy,
+        ));
         ret.push('\n');
 
         let mut entries_ret = String::new();
@@ -413,7 +411,7 @@ mod tests {
     use crate::file::mofile::mofile;
     use std::fs;
     use std::path::Path;
-    use unicode_segmentation::UnicodeSegmentation;
+    use unicode_width::UnicodeWidthStr;
 
     #[test]
     fn pofile_test() {
@@ -459,7 +457,8 @@ mod tests {
         file.save("foobar-2-out.po");
         assert_eq!(
             file.to_string(),
-            "msgid \"\"
+            "#
+msgid \"\"
 msgstr \"\"
 \"Project-Id-Version: PACKAGE VERSION\\n\"
 \"Report-Msgid-Bugs-To: \\n\"
@@ -537,8 +536,8 @@ msgstr \"\"
         let file_as_string = file.to_string();
 
         for line in file_as_string.lines() {
-            let n_chars = line.graphemes(true).count();
-            assert!(n_chars <= file.options.wrapwidth + 2);
+            let width = UnicodeWidthStr::width(line);
+            assert!(width <= file.options.wrapwidth + 2);
         }
     }
 

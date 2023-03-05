@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use pyo3::prelude::*;
 
+use crate::exceptions;
 use crate::pypoentry::PyPOEntry;
 use rspolib::{
     pofile, AsBytes, FileOptions, MOFile, POFile, Save, SaveAsMOFile,
@@ -19,11 +20,9 @@ pub fn py_pofile(
         pofile(FileOptions::from((path_or_content, wrapwidth)));
     match result {
         Ok(pofile) => Ok(PyPOFile(pofile)),
-        Err(e) => {
-            Err(PyErr::new::<pyo3::exceptions::PyException, _>(
-                e.to_string(),
-            ))
-        }
+        Err(e) => Err(PyErr::new::<exceptions::SyntaxError, _>(
+            e.to_string(),
+        )),
     }
 }
 
