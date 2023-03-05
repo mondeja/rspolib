@@ -88,7 +88,7 @@ pub(crate) struct POFileParser {
     current_token: String,
     current_line: usize,
     current_entry: POEntry,
-    msgstr_index: String,
+    msgstr_index: usize,
     entry_obsolete: bool,
     transitions: Transitions,
 }
@@ -105,7 +105,7 @@ impl POFileParser {
             current_token: String::new(),
             current_line: 0,
             current_entry: POEntry::new(0),
-            msgstr_index: String::new(),
+            msgstr_index: 0,
             entry_obsolete: false,
             transitions: build_transitions(),
         }
@@ -116,6 +116,7 @@ impl POFileParser {
             let new_entry = self.current_entry.clone();
             self.file.entries.push(new_entry);
             self.current_entry = POEntry::new(self.current_line);
+            self.msgstr_index = 0;
         }
     }
 
@@ -287,6 +288,34 @@ impl POFileParser {
             self.process(&St::MC);
         } else if self.current_token.starts_with("msgstr[") {
             // msgstr plural
+            let index = self
+                .current_token
+                .splitn(2, '[')
+                .last()
+                .unwrap()
+                .split(']')
+                .next()
+                .unwrap()
+                .parse::<usize>();
+            match index {
+                Ok(index) => {
+                    self.msgstr_index = index;
+                }
+                Err(_) => {
+                    return Err(SyntaxError::Custom {
+                        maybe_filename: MaybeFilename::new(
+                            &self.file.options.path_or_content,
+                            self.content_is_path,
+                        ),
+                        message: format!(
+                            "Invalid msgstr plural index: {}. Only digits are allowed.",
+                            self.current_token
+                        ),
+                        line: self.current_line,
+                        index: 7,
+                    });
+                }
+            };
             self.process(&St::MX);
         } else if tokens[0] == "#," {
             if nb_tokens < 2 {
@@ -524,18 +553,23 @@ fn handle_ms(parser: &mut POFileParser) {
 }
 
 fn handle_mx(parser: &mut POFileParser) {
-    let index =
-        parser.current_token.chars().nth(7).unwrap().to_string();
     let value = unescape(
         &parser.current_token[parser.current_token.find('"').unwrap()
             + 1
             ..parser.current_token.len() - 1],
     );
-    parser.msgstr_index = index.clone();
+    let msgstr_plural_length =
+        parser.current_entry.msgstr_plural.len();
+    if parser.msgstr_index > msgstr_plural_length {
+        for _ in 0..parser.msgstr_index - msgstr_plural_length {
+            parser.current_entry.msgstr_plural.push("".to_string());
+        }
+    }
+
     parser
         .current_entry
         .msgstr_plural
-        .insert(index, unescape(&value));
+        .insert(parser.msgstr_index, value);
 }
 
 fn handle_mc(parser: &mut POFileParser) {
@@ -560,16 +594,8 @@ fn handle_mc(parser: &mut POFileParser) {
         parser.current_entry.msgid_plural =
             Some(msgid_plural.to_string());
     } else if parser.current_state == St::MX {
-        let mut msgstr_plural = parser
-            .current_entry
-            .msgstr_plural
-            .remove(&parser.msgstr_index)
-            .unwrap();
-        msgstr_plural.push_str(&token);
-        parser
-            .current_entry
-            .msgstr_plural
-            .insert(parser.msgstr_index.clone(), msgstr_plural);
+        parser.current_entry.msgstr_plural[parser.msgstr_index]
+            .push_str(&token);
     } else if parser.current_state == St::PP {
         let previous_msgid_plural = parser
             .current_entry
@@ -676,7 +702,7 @@ mod tests {
         assert_eq!(parser.current_line, 0);
         assert_eq!(parser.current_entry.msgid, "");
         assert_eq!(parser.current_entry.linenum, 0);
-        assert_eq!(parser.msgstr_index, String::new());
+        assert_eq!(parser.msgstr_index, 0);
 
         // init from file path and wrapwidth
         let parser = POFileParser::new((path, 30).into());
@@ -1026,32 +1052,16 @@ mod tests {
         // check msgstr_plural
         assert_eq!(entry_1.msgstr_plural.len(), 2);
         assert_eq!(
-            entry_1.msgstr_plural.get("0").unwrap(),
+            entry_1.msgstr_plural[0],
             concat!(
                 "A Asegúrese de que este valor tenga al menos",
                 " %(limit_value)d caracter (tiene %(show_value)d).",
             )
         );
         assert_eq!(
-            entry_1.msgstr_plural.get("1").unwrap(),
+            entry_1.msgstr_plural[1],
             concat!(
                 "A Asegúrese de que este valor tenga al menos",
-                " %(limit_value)d carácter(es) (tiene%(show_value)d).",
-            )
-        );
-
-        assert_eq!(entry_2.msgstr_plural.len(), 2);
-        assert_eq!(
-            entry_2.msgstr_plural.get("5").unwrap(),
-            concat!(
-                "B Asegúrese de que este valor tenga al menos",
-                " %(limit_value)d caracter (tiene %(show_value)d).",
-            )
-        );
-        assert_eq!(
-            entry_2.msgstr_plural.get("3").unwrap(),
-            concat!(
-                "B Asegúrese de que este valor tenga al menos",
                 " %(limit_value)d carácter(es) (tiene%(show_value)d).",
             )
         );

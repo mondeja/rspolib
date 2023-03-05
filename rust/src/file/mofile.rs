@@ -101,7 +101,7 @@ impl MOFile {
     /// Returns the metadata as a [MOEntry]
     pub fn metadata_as_entry(&self) -> MOEntry {
         let mut entry =
-            MOEntry::new("".to_string(), None, None, None, None);
+            MOEntry::new("".to_string(), None, None, vec![], None);
         if !self.metadata.is_empty() {
             entry.msgstr =
                 Some(metadata_hashmap_to_msgstr(&self.metadata))
@@ -257,16 +257,10 @@ impl MOFile {
                 msgid.push_str(msgid_plural);
 
                 // handle msgstr_plural
-                let msgstr_plural = e.msgstr_plural.as_ref().unwrap();
-
-                let mut keys: Vec<&String> =
-                    msgstr_plural.keys().collect();
-                keys.sort();
-                let keys_length = keys.len();
-
-                for (i, k) in keys.iter().enumerate() {
-                    msgstr.push_str(msgstr_plural.get(*k).unwrap());
-                    if i < keys_length - 1 {
+                let msgstr_plural_length = &e.msgstr_plural.len();
+                for (i, v) in e.msgstr_plural.iter().enumerate() {
+                    msgstr.push_str(v);
+                    if i < msgstr_plural_length - 1 {
                         msgstr.push('\u{0000}');
                     }
                 }

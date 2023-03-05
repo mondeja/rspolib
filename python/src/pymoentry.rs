@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use pyo3::prelude::*;
 
 use rspolib::prelude::*;
@@ -18,12 +16,20 @@ impl PyMOEntry {
 #[pymethods]
 impl PyMOEntry {
     #[new]
-    #[pyo3(signature = (msgid="".to_string(), msgstr=None, msgid_plural=None, msgstr_plural=None, msgctxt=None))]
+    #[pyo3(
+        signature = (
+            msgid="".to_string(),
+            msgstr=None,
+            msgid_plural=None,
+            msgstr_plural=vec![] as Vec<String>,
+            msgctxt=None,
+        )
+    )]
     fn new(
         msgid: String,
         msgstr: Option<String>,
         msgid_plural: Option<String>,
-        msgstr_plural: Option<HashMap<String, String>>,
+        msgstr_plural: Vec<String>,
         msgctxt: Option<String>,
     ) -> Self {
         PyMOEntry(MOEntry::new(
@@ -72,16 +78,14 @@ impl PyMOEntry {
     }
 
     #[getter]
-    fn msgstr_plural(
-        &self,
-    ) -> PyResult<Option<HashMap<String, String>>> {
+    fn msgstr_plural(&self) -> PyResult<Vec<String>> {
         Ok(self.0.msgstr_plural.clone())
     }
 
     #[setter]
     fn set_msgstr_plural(
         &mut self,
-        msgstr_plural: Option<HashMap<String, String>>,
+        msgstr_plural: Vec<String>,
     ) -> PyResult<()> {
         self.0.msgstr_plural = msgstr_plural;
         Ok(())

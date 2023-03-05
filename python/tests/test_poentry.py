@@ -13,7 +13,10 @@ def test_poentry_constructor(runner):
         entry.msgstr = "msgstr 1"
         entry.msgctxt = "msgctxt 1"
         entry.msgid_plural = "msgid_plural 1"
-        entry.msgstr_plural = {"0": "msgstr_plural 1", "1": "msgstr_plural 2"}
+        entry.msgstr_plural = [
+            "msgstr_plural 1",
+            "msgstr_plural 2",
+        ]
         entry.obsolete = True
         entry.comment = "comment 1"
         entry.tcomment = "tcomment 1"
@@ -25,7 +28,10 @@ def test_poentry_constructor(runner):
         assert entry.msgstr == "msgstr 1"
         assert entry.msgctxt == "msgctxt 1"
         assert entry.msgid_plural == "msgid_plural 1"
-        assert entry.msgstr_plural == {"0": "msgstr_plural 1", "1": "msgstr_plural 2"}
+        assert entry.msgstr_plural == [
+            "msgstr_plural 1",
+            "msgstr_plural 2",
+        ]
         assert entry.obsolete
         assert entry.comment == "comment 1"
         assert entry.tcomment == "tcomment 1"

@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::fs::File;
 use std::io::{Cursor, SeekFrom};
 use std::path::Path;
@@ -32,23 +31,22 @@ type MsgsIndex = Vec<(u32, u32)>;
 fn maybe_extract_plurals_from_msgid_msgstr(
     msgid: &str,
     msgstr: &str,
-) -> (String, Option<String>, Option<HashMap<String, String>>) {
+) -> (String, Option<String>, Vec<String>) {
     if !msgid.contains('\u{0}') {
-        return (msgid.to_string(), None, None);
+        return (msgid.to_string(), None, vec![]);
     }
     let msgid_tokens = msgid.split('\u{0}').collect::<Vec<&str>>();
 
     let (msgid, msgid_plural) = (msgid_tokens[0], msgid_tokens[1]);
     let msgstr_plural = msgstr
         .split('\u{0}')
-        .enumerate()
-        .map(|(i, val)| (i.to_string(), val.to_string()))
-        .collect::<HashMap<String, String>>();
+        .map(|s| s.to_string())
+        .collect::<Vec<String>>();
 
     (
         msgid.to_string(),
         Some(msgid_plural.to_string()),
-        Some(msgstr_plural),
+        msgstr_plural,
     )
 }
 
@@ -312,12 +310,10 @@ impl MOFileParser<'_> {
             }
 
             // check if we have a plural entry
-            let plurals = maybe_extract_plurals_from_msgid_msgstr(
-                &msgid, &msgstr,
-            );
-            let mut msgid = plurals.0;
-            let msgid_plural = plurals.1;
-            let msgstr_plural = plurals.2;
+            let (mut msgid, msgid_plural, msgstr_plural) =
+                maybe_extract_plurals_from_msgid_msgstr(
+                    &msgid, &msgstr,
+                );
             let msgctxt_tokens =
                 maybe_extract_msgctxt_from_msgid(&msgid);
             msgid = msgctxt_tokens.0;

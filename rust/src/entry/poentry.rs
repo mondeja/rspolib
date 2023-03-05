@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::fmt;
 
 use unicode_width::UnicodeWidthStr;
@@ -40,7 +39,7 @@ pub struct POEntry {
     /// untranslated string for plural form
     pub msgid_plural: Option<String>,
     /// translated strings for plural form
-    pub msgstr_plural: HashMap<String, String>,
+    pub msgstr_plural: Vec<String>,
     /// context
     pub msgctxt: Option<String>,
     /// the entry is marked as obsolete
@@ -237,7 +236,7 @@ impl Translated for POEntry {
         if self.msgstr_plural.is_empty() {
             return false;
         }
-        for msgstr in self.msgstr_plural.values() {
+        for msgstr in &self.msgstr_plural {
             if msgstr.is_empty() {
                 return false;
             }
@@ -301,10 +300,7 @@ impl From<&MOEntry> for POEntry {
         entry.msgid = mo_entry.msgid.clone();
         entry.msgstr = mo_entry.msgstr.as_ref().cloned();
         entry.msgid_plural = mo_entry.msgid_plural.as_ref().cloned();
-        entry.msgstr_plural = match mo_entry.msgstr_plural {
-            Some(ref plural) => plural.clone(),
-            None => HashMap::new(),
-        };
+        entry.msgstr_plural = mo_entry.msgstr_plural.clone();
         entry.msgctxt = mo_entry.msgctxt.as_ref().cloned();
         entry
     }
@@ -323,7 +319,7 @@ mod tests {
         assert_eq!(poentry.msgid, "");
         assert_eq!(poentry.msgstr, None);
         assert_eq!(poentry.msgid_plural, None);
-        assert_eq!(poentry.msgstr_plural, HashMap::new());
+        assert_eq!(poentry.msgstr_plural, vec![] as Vec<String>);
         assert_eq!(poentry.msgctxt, None);
     }
 
@@ -365,21 +361,19 @@ mod tests {
 
         // empty msgstr_plural means untranslated
         let mut empty_msgstr_plural_entry = POEntry::new(0);
-        empty_msgstr_plural_entry.msgstr_plural = HashMap::new();
+        empty_msgstr_plural_entry.msgstr_plural = vec![];
         assert_eq!(empty_msgstr_plural_entry.translated(), false);
 
         // with empty msgstr_plural means untranslated
         let mut empty_msgstr_plural_entry = POEntry::new(0);
         empty_msgstr_plural_entry.msgstr_plural =
-            HashMap::from([("0".to_string(), "".to_string())]);
+            vec!["".to_string()];
         assert_eq!(empty_msgstr_plural_entry.translated(), false);
 
         // with msgstr_plural means translated
         let mut translated_plural_entry = POEntry::new(0);
-        translated_plural_entry.msgstr_plural = HashMap::from([(
-            "0".to_string(),
-            "msgstr_plural".to_string(),
-        )]);
+        translated_plural_entry.msgstr_plural =
+            vec!["msgstr_plural".to_string()];
         assert_eq!(translated_plural_entry.translated(), true);
     }
 
@@ -389,19 +383,13 @@ mod tests {
         poentry.msgid = "msgid".to_string();
         poentry.msgstr = Some("msgstr".to_string());
         poentry.msgid_plural = Some("msgid_plural".to_string());
-        poentry.msgstr_plural = HashMap::from([(
-            "0".to_string(),
-            "msgstr_plural".to_string(),
-        )]);
+        poentry.msgstr_plural = vec!["msgstr_plural".to_string()];
 
         let mut other = POEntry::new(0);
         other.msgid = "other_msgid".to_string();
         other.msgstr = Some("other_msgstr".to_string());
         other.msgid_plural = Some("other_msgid_plural".to_string());
-        other.msgstr_plural = HashMap::from([(
-            "0".to_string(),
-            "other_msgstr_plural".to_string(),
-        )]);
+        other.msgstr_plural = vec!["other_msgstr_plural".to_string()];
 
         poentry.merge(other);
 
@@ -413,10 +401,7 @@ mod tests {
         );
         assert_eq!(
             poentry.msgstr_plural,
-            HashMap::from([(
-                "0".to_string(),
-                "other_msgstr_plural".to_string()
-            )])
+            vec!["other_msgstr_plural".to_string()]
         );
     }
 
@@ -458,29 +443,22 @@ mod tests {
         assert_eq!(entry.to_string(), expected);
 
         // msgstr_plural
-        entry.msgstr_plural = HashMap::from([
-            ("1".to_string(), "plural 2".to_string()),
-            ("0".to_string(), "plural 1".to_string()),
-        ]);
+        entry.msgstr_plural =
+            vec!["plural 1".to_string(), "plural 2".to_string()];
+
         let expected = concat!(
             "msgid \"msgid\"\nmsgid_plural \"msgid_plural\"\n",
             "msgstr[0] \"plural 1\"\nmsgstr[1] \"plural 2\"\n",
         );
         assert_eq!(entry.to_string(), expected);
 
-        // all indexes are allowed
-        entry.msgstr_plural = HashMap::from([
-            ("5".to_string(), "plural 2".to_string()),
-            ("3".to_string(), "plural 1".to_string()),
-        ]);
-
         // msgctxt
         entry.msgctxt = Some("msgctxt".to_string());
         let expected = concat!(
             "msgctxt \"msgctxt\"\nmsgid \"msgid\"\n",
             "msgid_plural \"msgid_plural\"\n",
-            "msgstr[3] \"plural 1\"\n",
-            "msgstr[5] \"plural 2\"\n"
+            "msgstr[0] \"plural 1\"\n",
+            "msgstr[1] \"plural 2\"\n"
         );
         assert_eq!(entry.to_string(), expected);
 
@@ -490,8 +468,8 @@ mod tests {
             "#, fuzzy\n",
             "msgctxt \"msgctxt\"\nmsgid \"msgid\"\n",
             "msgid_plural \"msgid_plural\"\n",
-            "msgstr[3] \"plural 1\"\n",
-            "msgstr[5] \"plural 2\"\n"
+            "msgstr[0] \"plural 1\"\n",
+            "msgstr[1] \"plural 2\"\n"
         );
         assert_eq!(entry.to_string(), expected);
 
@@ -499,7 +477,7 @@ mod tests {
         let expected = concat!(
             "#, fuzzy, python-format\nmsgctxt \"msgctxt\"\n",
             "msgid \"msgid\"\nmsgid_plural \"msgid_plural\"\n",
-            "msgstr[3] \"plural 1\"\nmsgstr[5] \"plural 2\"\n"
+            "msgstr[0] \"plural 1\"\nmsgstr[1] \"plural 2\"\n"
         );
         assert_eq!(entry.to_string(), expected);
 
@@ -509,7 +487,7 @@ mod tests {
             "# comment\n#, fuzzy, python-format\n",
             "msgctxt \"msgctxt\"\nmsgid \"msgid\"\n",
             "msgid_plural \"msgid_plural\"\n",
-            "msgstr[3] \"plural 1\"\nmsgstr[5] \"plural 2\"\n"
+            "msgstr[0] \"plural 1\"\nmsgstr[1] \"plural 2\"\n"
         );
         assert_eq!(entry.to_string(), expected);
 
@@ -518,7 +496,7 @@ mod tests {
             "#. extracted_comment\n# comment\n",
             "#, fuzzy, python-format\nmsgctxt \"msgctxt\"\n",
             "msgid \"msgid\"\nmsgid_plural \"msgid_plural\"\n",
-            "msgstr[3] \"plural 1\"\nmsgstr[5] \"plural 2\"\n"
+            "msgstr[0] \"plural 1\"\nmsgstr[1] \"plural 2\"\n"
         );
         assert_eq!(entry.to_string(), expected);
 
@@ -529,8 +507,8 @@ mod tests {
             "#, fuzzy, python-format\n#~ msgctxt \"msgctxt\"\n",
             "#~ msgid \"msgid\"\n",
             "#~ msgid_plural \"msgid_plural\"\n",
-            "#~ msgstr[3] \"plural 1\"\n",
-            "#~ msgstr[5] \"plural 2\"\n"
+            "#~ msgstr[0] \"plural 1\"\n",
+            "#~ msgstr[1] \"plural 2\"\n"
         );
         assert_eq!(entry.to_string(), expected);
 
@@ -549,8 +527,8 @@ mod tests {
             "#~ msgctxt \"msgctxt\"\n",
             "#~ msgid \"msgid\"\n",
             "#~ msgid_plural \"msgid_plural\"\n",
-            "#~ msgstr[3] \"plural 1\"\n",
-            "#~ msgstr[5] \"plural 2\"\n"
+            "#~ msgstr[0] \"plural 1\"\n",
+            "#~ msgstr[1] \"plural 2\"\n"
         );
         assert_eq!(entry.to_string(), expected);
 
@@ -561,8 +539,8 @@ mod tests {
             "#, fuzzy, python-format\n",
             "msgctxt \"msgctxt\"\nmsgid \"msgid\"\n",
             "msgid_plural \"msgid_plural\"\n",
-            "msgstr[3] \"plural 1\"\n",
-            "msgstr[5] \"plural 2\"\n"
+            "msgstr[0] \"plural 1\"\n",
+            "msgstr[1] \"plural 2\"\n"
         );
         assert_eq!(entry.to_string(), expected);
 
@@ -577,8 +555,8 @@ mod tests {
             "#, fuzzy, python-format, rspolib\n",
             "msgctxt \"msgctxt\"\nmsgid \"msgid\"\n",
             "msgid_plural \"msgid_plural\"\n",
-            "msgstr[3] \"plural 1\"\n",
-            "msgstr[5] \"plural 2\"\n"
+            "msgstr[0] \"plural 1\"\n",
+            "msgstr[1] \"plural 2\"\n"
         );
         assert_eq!(entry.to_string(), expected);
 
@@ -593,8 +571,8 @@ mod tests {
             "msgctxt \"msgctxt\"\n",
             "msgid \"msgid\"\n",
             "msgid_plural \"msgid_plural\"\n",
-            "msgstr[3] \"plural 1\"\n",
-            "msgstr[5] \"plural 2\"\n"
+            "msgstr[0] \"plural 1\"\n",
+            "msgstr[1] \"plural 2\"\n"
         );
         assert_eq!(entry.to_string(), expected);
 
@@ -609,8 +587,8 @@ mod tests {
             "msgctxt \"msgctxt\"\n",
             "msgid \"msgid\"\n",
             "msgid_plural \"msgid_plural\"\n",
-            "msgstr[3] \"plural 1\"\n",
-            "msgstr[5] \"plural 2\"\n"
+            "msgstr[0] \"plural 1\"\n",
+            "msgstr[1] \"plural 2\"\n"
         );
         assert_eq!(entry.to_string(), expected);
     }

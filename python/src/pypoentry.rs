@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use pyo3::prelude::*;
 
 use rspolib::prelude::*;
@@ -23,7 +21,7 @@ impl PyPOEntry {
             msgid="".to_string(),
             msgstr=None,
             msgid_plural=None,
-            msgstr_plural=None,
+            msgstr_plural=vec![] as Vec<String>,
             msgctxt=None,
         )
     )]
@@ -31,17 +29,14 @@ impl PyPOEntry {
         msgid: String,
         msgstr: Option<String>,
         msgid_plural: Option<String>,
-        msgstr_plural: Option<HashMap<String, String>>,
+        msgstr_plural: Vec<String>,
         msgctxt: Option<String>,
     ) -> Self {
         let mut poentry = POEntry::new(0);
         poentry.msgid = msgid;
         poentry.msgstr = msgstr;
         poentry.msgid_plural = msgid_plural;
-        poentry.msgstr_plural = match msgstr_plural {
-            Some(m) => m,
-            None => HashMap::new(),
-        };
+        poentry.msgstr_plural = msgstr_plural;
         poentry.msgctxt = msgctxt;
         PyPOEntry(poentry)
     }
@@ -83,14 +78,14 @@ impl PyPOEntry {
     }
 
     #[getter]
-    fn msgstr_plural(&self) -> PyResult<HashMap<String, String>> {
+    fn msgstr_plural(&self) -> PyResult<Vec<String>> {
         Ok(self.0.msgstr_plural.clone())
     }
 
     #[setter]
     fn set_msgstr_plural(
         &mut self,
-        msgstr_plural: HashMap<String, String>,
+        msgstr_plural: Vec<String>,
     ) -> PyResult<()> {
         self.0.msgstr_plural = msgstr_plural;
         Ok(())

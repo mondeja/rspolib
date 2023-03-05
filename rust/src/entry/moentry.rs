@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::fmt;
 
 use crate::entry::{
@@ -32,7 +31,7 @@ pub struct MOEntry {
     /// untranslated string for plural form
     pub msgid_plural: Option<String>,
     /// translated strings for plural form
-    pub msgstr_plural: Option<HashMap<String, String>>,
+    pub msgstr_plural: Vec<String>,
     /// context
     pub msgctxt: Option<String>,
 }
@@ -42,7 +41,7 @@ impl MOEntry {
         msgid: String,
         msgstr: Option<String>,
         msgid_plural: Option<String>,
-        msgstr_plural: Option<HashMap<String, String>>,
+        msgstr_plural: Vec<String>,
         msgctxt: Option<String>,
     ) -> MOEntry {
         MOEntry {
@@ -80,16 +79,14 @@ impl Translated for MOEntry {
             return !msgstr.is_empty();
         }
 
-        if let Some(msgstr_plural) = &self.msgstr_plural {
-            if msgstr_plural.is_empty() {
-                return false;
-            }
-            for msgstr in msgstr_plural.values() {
-                if msgstr.is_empty() {
-                    return false;
+        if self.msgstr_plural.is_empty() {
+            return false;
+        } else {
+            for msgstr_plural in &self.msgstr_plural {
+                if !msgstr_plural.is_empty() {
+                    return true;
                 }
             }
-            return true;
         }
 
         false
@@ -115,7 +112,7 @@ impl fmt::Display for MOEntry {
 impl From<&str> for MOEntry {
     /// Generates a [MOEntry] from a string as the `msgid`
     fn from(s: &str) -> Self {
-        MOEntry::new(s.to_string(), None, None, None, None)
+        MOEntry::new(s.to_string(), None, None, vec![], None)
     }
 }
 
@@ -129,10 +126,7 @@ impl From<&POEntry> for MOEntry {
             msgid: entry.msgid.clone(),
             msgstr: entry.msgstr.clone(),
             msgid_plural: entry.msgid_plural.clone(),
-            msgstr_plural: match entry.msgstr_plural.is_empty() {
-                true => None,
-                false => Some(entry.msgstr_plural.clone()),
-            },
+            msgstr_plural: entry.msgstr_plural.clone(),
             msgctxt: entry.msgctxt.clone(),
         }
     }
@@ -148,14 +142,14 @@ mod tests {
             "msgid".to_string(),
             Some("msgstr".to_string()),
             None,
-            None,
+            vec![],
             None,
         );
 
         assert_eq!(moentry.msgid, "msgid");
         assert_eq!(moentry.msgstr, Some("msgstr".to_string()));
         assert_eq!(moentry.msgid_plural, None);
-        assert_eq!(moentry.msgstr_plural, None);
+        assert_eq!(moentry.msgstr_plural, vec![] as Vec<String>);
         assert_eq!(moentry.msgctxt, None);
     }
 
@@ -166,7 +160,7 @@ mod tests {
             "msgid".to_string(),
             Some("".to_string()),
             None,
-            None,
+            vec![],
             None,
         );
         assert_eq!(moentry.translated(), false);
@@ -175,7 +169,7 @@ mod tests {
             "msgid".to_string(),
             Some("msgstr".to_string()),
             None,
-            None,
+            vec![],
             None,
         );
         assert_eq!(moentry.translated(), true);
@@ -185,7 +179,7 @@ mod tests {
             "msgid".to_string(),
             None,
             None,
-            Some(HashMap::new()),
+            vec![],
             None,
         );
         assert_eq!(moentry.translated(), false);
@@ -195,25 +189,10 @@ mod tests {
             "msgid".to_string(),
             None,
             None,
-            Some(HashMap::from([("0".to_string(), "".to_string())])),
+            vec!["".to_string()],
             None,
         );
         assert_eq!(moentry.translated(), false);
-
-        let moentry = MOEntry::new(
-            "msgid".to_string(),
-            None,
-            None,
-            Some(
-                // doesn't matter if has an invalid index
-                HashMap::from([(
-                    "4".to_string(),
-                    "msgstr_plural".to_string(),
-                )]),
-            ),
-            None,
-        );
-        assert_eq!(moentry.translated(), true);
     }
 
     #[test]
@@ -222,20 +201,14 @@ mod tests {
             "msgid".to_string(),
             Some("msgstr".to_string()),
             Some("msgid_plural".to_string()),
-            Some(HashMap::from([(
-                "0".to_string(),
-                "msgstr_plural".to_string(),
-            )])),
+            vec!["msgstr_plural".to_string()],
             Some("msgctxt".to_string()),
         );
         let other = MOEntry::new(
             "other_msgid".to_string(),
             Some("other_msgstr".to_string()),
             Some("other_msgid_plural".to_string()),
-            Some(HashMap::from([(
-                "4".to_string(),
-                "other_msgstr_plural".to_string(),
-            )])),
+            vec!["other_msgstr_plural".to_string()],
             Some("other_msgctxt".to_string()),
         );
 
@@ -249,10 +222,7 @@ mod tests {
         );
         assert_eq!(
             moentry.msgstr_plural,
-            Some(HashMap::from([(
-                "4".to_string(),
-                "other_msgstr_plural".to_string()
-            )]))
+            vec!["other_msgstr_plural".to_string()],
         );
         assert_eq!(
             moentry.msgctxt,
@@ -267,10 +237,7 @@ mod tests {
             "msgid".to_string(),
             Some("msgstr".to_string()),
             Some("msgid_plural".to_string()),
-            Some(HashMap::from([(
-                "0".to_string(),
-                "msgstr_plural".to_string(),
-            )])),
+            vec!["msgstr_plural".to_string()],
             Some("msgctxt".to_string()),
         );
 
@@ -288,7 +255,7 @@ msgstr[0] "msgstr_plural"
             "msgid".to_string(),
             Some("msgstr".to_string()),
             None,
-            None,
+            vec![],
             Some("msgctxt".to_string()),
         );
 
@@ -303,10 +270,7 @@ msgstr "msgstr"
 
     #[test]
     fn moentry_from_poentry() {
-        let msgstr_plural = HashMap::from([(
-            "0".to_string(),
-            "msgstr_plural".to_string(),
-        )]);
+        let msgstr_plural = vec!["msgstr_plural".to_string()];
 
         let mut poentry = POEntry::new(0);
         poentry.msgid = "msgid".to_string();
@@ -323,7 +287,7 @@ msgstr "msgstr"
             moentry.msgid_plural,
             Some("msgid_plural".to_string())
         );
-        assert_eq!(moentry.msgstr_plural, Some(msgstr_plural));
+        assert_eq!(moentry.msgstr_plural, msgstr_plural);
         assert_eq!(moentry.msgctxt, Some("msgctxt".to_string()));
     }
 }

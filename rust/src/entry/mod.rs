@@ -122,24 +122,7 @@ fn mo_entry_to_string_with_msgstr_formatter(
         );
     }
 
-    if let Some(msgstr_plural) = &entry.msgstr_plural {
-        let mut indexes =
-            msgstr_plural.keys().collect::<Vec<&String>>();
-        indexes.sort();
-
-        for index in indexes.iter() {
-            let msgstr = match msgstr_plural.get(*index) {
-                Some(msgstr) => msgstr,
-                None => "",
-            };
-            ret.push_str(
-                &POStringField::new(
-                    "msgstr", delflag, msgstr, index, wrapwidth,
-                )
-                .to_string(),
-            );
-        }
-    } else {
+    if entry.msgstr_plural.is_empty() {
         let msgstr = match &entry.msgstr {
             Some(msgstr) => msgstr,
             None => "",
@@ -147,6 +130,21 @@ fn mo_entry_to_string_with_msgstr_formatter(
         let formatted_msgstr =
             msgstr_formatter(msgstr, delflag, wrapwidth);
         ret.push_str(&formatted_msgstr);
+    } else {
+        for (i, msgstr_plural) in
+            entry.msgstr_plural.iter().enumerate()
+        {
+            ret.push_str(
+                &POStringField::new(
+                    "msgstr",
+                    delflag,
+                    msgstr_plural,
+                    &i.to_string(),
+                    wrapwidth,
+                )
+                .to_string(),
+            );
+        }
     }
 
     ret

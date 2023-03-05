@@ -116,12 +116,10 @@ def test_find_entry(runner, tests_dir):
     def find_by_msgid_plural(polib):
         if polib.__name__ == "rspolib":
             entries = rspo.find("Please submit %d or fewer forms.", by="msgid_plural")
-            msgstr_plural = entries[0].msgstr_plural["0"]
-            # TODO: implementation differing here with polib
+            entry = entries[0]
         else:
             entry = pypo.find("Please submit %d or fewer forms.", by="msgid_plural")
-            msgstr_plural = entry.msgstr_plural[0]
-        assert msgstr_plural == "Por favor, envíe %d formulario o menos."
+        assert entry.msgstr_plural[0] == "Por favor, envíe %d formulario o menos."
 
     runner.run(
         {"reps": 1000},
