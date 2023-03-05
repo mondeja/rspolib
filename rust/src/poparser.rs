@@ -295,9 +295,8 @@ impl POFileParser {
                 .unwrap()
                 .split(']')
                 .next()
-                .unwrap()
-                .parse::<usize>();
-            match index {
+                .unwrap();
+            match index.parse::<usize>() {
                 Ok(index) => {
                     self.msgstr_index = index;
                 }
@@ -308,8 +307,11 @@ impl POFileParser {
                             self.content_is_path,
                         ),
                         message: format!(
-                            "Invalid msgstr plural index: {}. Only digits are allowed.",
-                            self.current_token
+                            concat!(
+                                "Invalid msgstr plural index.",
+                                " Expected digit, found '{}'."
+                            ),
+                            index,
                         ),
                         line: self.current_line,
                         index: 7,
@@ -1427,6 +1429,29 @@ mod tests {
                 maybe_filename: MaybeFilename::new(content, false,),
                 line: 5,
                 index: 0,
+            })
+        );
+    }
+
+    #[test]
+    fn error_when_non_digit_msgstr_plural_index() {
+        let content = concat!(
+            "#\n",
+            "msgid \"\"\n",
+            "msgstr \"\"\n",
+            "\n",
+            "msgstr[foo] \"bar\"\n",
+        );
+        let mut parser = POFileParser::new(content.into());
+        let result = parser.parse();
+
+        assert_eq!(
+            result,
+            Err(SyntaxError::Custom {
+                maybe_filename: MaybeFilename::new(content, false,),
+                line: 5,
+                index: 7,
+                message: "Invalid msgstr plural index. Expected digit, found 'foo'.".to_string(),
             })
         );
     }
