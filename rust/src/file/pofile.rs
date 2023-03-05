@@ -13,6 +13,53 @@ use crate::moparser::{MAGIC, MAGIC_SWAPPED};
 use crate::poparser::POFileParser;
 use crate::traits::Merge;
 
+fn empty_msgctxt_predicate(_: &POEntry, _: &str) -> bool {
+    true
+}
+
+fn msgctxt_predicate(entry: &POEntry, msgctxt: &str) -> bool {
+    entry.msgctxt.as_ref().unwrap_or(&"".to_string()) == msgctxt
+}
+
+fn by_msgid_predicate(entry: &POEntry, value: &str) -> bool {
+    entry.msgid == value
+}
+
+fn by_msgstr_predicate(entry: &POEntry, value: &str) -> bool {
+    entry.msgstr.as_ref().unwrap_or(&"".to_string()) == value
+}
+
+fn by_msgctxt_predicate(entry: &POEntry, value: &str) -> bool {
+    entry.msgctxt.as_ref().unwrap_or(&"".to_string()) == value
+}
+
+fn by_msgid_plural_predicate(entry: &POEntry, value: &str) -> bool {
+    entry.msgid_plural.as_ref().unwrap_or(&"".to_string()) == value
+}
+
+fn by_previous_msgid_predicate(entry: &POEntry, value: &str) -> bool {
+    entry.previous_msgid.as_ref().unwrap_or(&"".to_string()) == value
+}
+
+fn by_previous_msgid_plural_predicate(
+    entry: &POEntry,
+    value: &str,
+) -> bool {
+    entry
+        .previous_msgid_plural
+        .as_ref()
+        .unwrap_or(&"".to_string())
+        == value
+}
+
+fn by_previous_msgctxt_predicate(
+    entry: &POEntry,
+    value: &str,
+) -> bool {
+    entry.previous_msgctxt.as_ref().unwrap_or(&"".to_string())
+        == value
+}
+
 /// PO files factory function.
 ///
 /// It takes an argument that could be either:
@@ -141,6 +188,64 @@ impl POFile {
                 || e.msgctxt.as_ref().unwrap_or(&"".to_string())
                     != msgctxt
         });
+    }
+
+    /// Find entries by a given field and value
+    ///
+    /// The field defined in the `by` argument can be one of:
+    ///
+    /// * `msgid`
+    /// * `msgstr`
+    /// * `msgctxt`
+    /// * `msgid_plural`
+    /// * `previous_msgid`
+    /// * `previous_msgid_plural`
+    /// * `previous_msgctxt`
+    ///
+    /// Passing the optional `msgctxt` argument the entry
+    /// will also must match with the given context.
+    ///
+    /// If `include_obsolete_entries` is set to `true` the
+    /// search will include obsolete entries.
+    pub fn find(
+        &self,
+        value: &str,
+        by: &str,
+        msgctxt: Option<&str>,
+        include_obsolete_entries: bool,
+    ) -> Vec<&POEntry> {
+        let mut entries: Vec<&POEntry> = Vec::new();
+
+        let msgctxt_predicate: &dyn Fn(&POEntry, &str) -> bool =
+            match msgctxt {
+                Some(_) => &msgctxt_predicate,
+                None => &empty_msgctxt_predicate,
+            };
+
+        let by_predicate: &dyn Fn(&POEntry, &str) -> bool = match by {
+            "msgid" => &by_msgid_predicate,
+            "msgstr" => &by_msgstr_predicate,
+            "msgctxt" => &by_msgctxt_predicate,
+            "msgid_plural" => &by_msgid_plural_predicate,
+            "previous_msgid" => &by_previous_msgid_predicate,
+            "previous_msgid_plural" => {
+                &by_previous_msgid_plural_predicate
+            }
+            "previous_msgctxt" => &by_previous_msgctxt_predicate,
+            _ => &|_: &POEntry, _: &str| false,
+        };
+
+        for entry in &self.entries {
+            if !include_obsolete_entries && entry.obsolete {
+                continue;
+            }
+            if by_predicate(entry, value)
+                && msgctxt_predicate(entry, msgctxt.unwrap_or(""))
+            {
+                entries.push(entry);
+            }
+        }
+        entries
     }
 
     /// Find an entry by his msgid
@@ -718,6 +823,40 @@ msgstr \"\"
                 .as_ref()
                 .unwrap(),
             "msgstr 2",
+        );
+
+        // find by msgid_plural, msgctxt, msgid...
+        let mut entry_3 = POEntry::new(6);
+        entry_3.msgid = "msgid for msgid_plural 1".to_string();
+        entry_3.msgid_plural = Some("msgid_plural 1".to_string());
+        entry_3.msgctxt =
+            Some("msgctxt for msgid_plural 1".to_string());
+        file.entries.push(entry_3);
+
+        let mut entry_4 = POEntry::new(6);
+        entry_4.msgid = "msgid for msgid_plural 1".to_string();
+        entry_4.msgid_plural = Some("msgid_plural 1".to_string());
+        entry_4.msgctxt = Some("other_msgctxt".to_string());
+        file.entries.push(entry_4);
+
+        let entries = file.find(
+            "msgid for msgid_plural 1",
+            "msgid",
+            None,
+            false,
+        );
+        assert_eq!(entries.len(), 2);
+
+        let entries = file.find(
+            "msgid for msgid_plural 1",
+            "msgid",
+            Some("msgctxt for msgid_plural 1"),
+            false,
+        );
+        assert_eq!(entries.len(), 1);
+        assert_eq!(
+            entries[0].msgctxt.as_ref().unwrap(),
+            "msgctxt for msgid_plural 1"
         );
     }
 }

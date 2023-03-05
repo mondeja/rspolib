@@ -124,6 +124,20 @@ impl PyMOFile {
         Ok(())
     }
 
+    #[pyo3(signature=(value, by="msgid", msgctxt=None))]
+    fn find(
+        &self,
+        value: &str,
+        by: &str,
+        msgctxt: Option<&str>,
+    ) -> PyResult<Vec<PyMOEntry>> {
+        let mut entries: Vec<PyMOEntry> = vec![];
+        for entry in self.0.find(value, by, msgctxt) {
+            entries.push(PyMOEntry::from(entry));
+        }
+        Ok(entries)
+    }
+
     fn find_by_msgid(
         &self,
         msgid: &str,

@@ -67,6 +67,13 @@ def test_methods(runner, tests_dir):
         po = polib.pofile(f"{tests_dir}/fuzzy-no-fuzzy.po")
         assert len(po.fuzzy_entries()) == 1
 
+    def find(polib):
+        po = polib.pofile(f"{tests_dir}/flags.po")
+        entry = po.find("msgstr 5", by="msgstr")
+        if polib.__name__ == "rspolib":
+            entry = entry[0]
+        assert entry.msgid == "msgid 5"
+
     runner.run(
         {"reps": 1000},
         [
@@ -74,6 +81,7 @@ def test_methods(runner, tests_dir):
             untranslated_entries,
             translated_entries,
             fuzzy_entries,
+            find,
         ],
     )
 

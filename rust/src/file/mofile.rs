@@ -14,6 +14,30 @@ use crate::file::{
 };
 use crate::moparser::{MOFileParser, MAGIC, MAGIC_SWAPPED};
 
+fn empty_msgctxt_predicate(_: &MOEntry, _: &str) -> bool {
+    true
+}
+
+fn msgctxt_predicate(entry: &MOEntry, msgctxt: &str) -> bool {
+    entry.msgctxt.as_ref().unwrap_or(&"".to_string()) == msgctxt
+}
+
+fn by_msgid_predicate(entry: &MOEntry, value: &str) -> bool {
+    entry.msgid == value
+}
+
+fn by_msgstr_predicate(entry: &MOEntry, value: &str) -> bool {
+    entry.msgstr.as_ref().unwrap_or(&"".to_string()) == value
+}
+
+fn by_msgctxt_predicate(entry: &MOEntry, value: &str) -> bool {
+    entry.msgctxt.as_ref().unwrap_or(&"".to_string()) == value
+}
+
+fn by_msgid_plural_predicate(entry: &MOEntry, value: &str) -> bool {
+    entry.msgid_plural.as_ref().unwrap_or(&"".to_string()) == value
+}
+
 /// MO file factory function
 ///
 /// Read a MO file from a path, parse from content as bytes or
@@ -84,6 +108,49 @@ impl MOFile {
         }
 
         entry
+    }
+
+    /// Find entries by a given field and value
+    ///
+    /// The field defined in the `by` argument can be one of:
+    ///
+    /// * `msgid`
+    /// * `msgstr`
+    /// * `msgctxt`
+    /// * `msgid_plural`
+    ///
+    /// Passing the optional `msgctxt` argument the entry
+    /// will also must match with the given context.
+    pub fn find(
+        &self,
+        value: &str,
+        by: &str,
+        msgctxt: Option<&str>,
+    ) -> Vec<&MOEntry> {
+        let mut entries: Vec<&MOEntry> = Vec::new();
+
+        let msgctxt_predicate: &dyn Fn(&MOEntry, &str) -> bool =
+            match msgctxt {
+                Some(_) => &msgctxt_predicate,
+                None => &empty_msgctxt_predicate,
+            };
+
+        let by_predicate: &dyn Fn(&MOEntry, &str) -> bool = match by {
+            "msgid" => &by_msgid_predicate,
+            "msgstr" => &by_msgstr_predicate,
+            "msgctxt" => &by_msgctxt_predicate,
+            "msgid_plural" => &by_msgid_plural_predicate,
+            _ => &|_: &MOEntry, _: &str| false,
+        };
+
+        for entry in &self.entries {
+            if by_predicate(entry, value)
+                && msgctxt_predicate(entry, msgctxt.unwrap_or(""))
+            {
+                entries.push(entry);
+            }
+        }
+        entries
     }
 
     /// Find an entry by msgid

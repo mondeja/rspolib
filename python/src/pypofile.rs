@@ -100,6 +100,23 @@ impl PyPOFile {
         Ok(())
     }
 
+    #[pyo3(signature=(value, by="msgid", include_obsolete_entries=false, msgctxt=None))]
+    fn find(
+        &self,
+        value: &str,
+        by: &str,
+        include_obsolete_entries: bool,
+        msgctxt: Option<&str>,
+    ) -> PyResult<Vec<PyPOEntry>> {
+        let mut entries: Vec<PyPOEntry> = vec![];
+        for entry in
+            self.0.find(value, by, msgctxt, include_obsolete_entries)
+        {
+            entries.push(PyPOEntry::from(entry));
+        }
+        Ok(entries)
+    }
+
     fn find_by_msgid(
         &self,
         msgid: &str,
