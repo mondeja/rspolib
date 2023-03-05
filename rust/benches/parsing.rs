@@ -4,11 +4,11 @@ use criterion::{
 use rspolib::{mofile, pofile};
 
 fn pofile_parse(basename: &str) {
-    pofile(format!("tests-data/{}", basename).as_str()).unwrap();
+    pofile(format!("tests-data/{}", basename).as_str()).ok();
 }
 
 fn mofile_parse(basename: &str) {
-    mofile(format!("tests-data/{}", basename).as_str()).unwrap();
+    mofile(format!("tests-data/{}", basename).as_str()).ok();
 }
 
 fn criterion_benchmark(c: &mut Criterion) {

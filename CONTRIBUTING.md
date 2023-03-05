@@ -16,6 +16,13 @@ cd rust
 cargo test
 ```
 
+### Run benchmarks
+
+```bash
+cd rust
+cargo bench
+```
+
 ### Open documentation
 
 ```bash
