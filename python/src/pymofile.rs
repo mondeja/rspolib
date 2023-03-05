@@ -5,9 +5,25 @@ use pyo3::prelude::*;
 use crate::exceptions;
 use crate::pymoentry::PyMOEntry;
 use rspolib::{
-    mofile, AsBytes, FileOptions, MOFile, Save, SaveAsMOFile,
-    SaveAsPOFile,
+    mofile, AsBytes, FileOptions, MOEntry, MOFile, Save,
+    SaveAsMOFile, SaveAsPOFile,
 };
+
+#[pyclass]
+struct PyMOEntriesIter {
+    inner: std::vec::IntoIter<MOEntry>,
+}
+
+#[pymethods]
+impl PyMOEntriesIter {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
+        slf
+    }
+
+    fn __next__(mut slf: PyRefMut<'_, Self>) -> Option<PyMOEntry> {
+        slf.inner.next().map(|entry| PyMOEntry::from(&entry))
+    }
+}
 
 #[pyfunction]
 #[pyo3(name = "mofile")]
@@ -47,6 +63,11 @@ impl PyMOFile {
         Ok(self.0.metadata.clone())
     }
 
+    #[setter]
+    fn set_metadata(&mut self, metadata: HashMap<String, String>) {
+        self.0.metadata = metadata;
+    }
+
     #[getter]
     fn entries(&self) -> PyResult<Vec<PyMOEntry>> {
         let mut entries = Vec::new();
@@ -64,6 +85,11 @@ impl PyMOFile {
     #[getter]
     fn wrapwidth(&self) -> PyResult<usize> {
         Ok(self.0.options.wrapwidth)
+    }
+
+    #[setter]
+    fn set_wrapwidth(&mut self, wrapwidth: usize) {
+        self.0.options.wrapwidth = wrapwidth;
     }
 
     #[getter]
@@ -170,13 +196,18 @@ impl PyMOFile {
     }
 
     fn __contains__(&self, entry: &PyMOEntry) -> PyResult<bool> {
-        Ok(self
-            .0
-            .find_by_msgid_msgctxt(
-                &entry._inner().msgid,
-                &entry._inner().msgctxt.unwrap_or("".to_string()),
-            )
-            .is_some())
+        Ok(match entry._inner().msgctxt {
+            Some(msgctxt) => self
+                .0
+                .find_by_msgid_msgctxt(
+                    &entry._inner().msgid,
+                    &msgctxt,
+                )
+                .is_some(),
+            None => {
+                self.0.find_by_msgid(&entry._inner().msgid).is_some()
+            }
+        })
     }
 
     fn __getitem__(&self, index: usize) -> PyResult<PyMOEntry> {
@@ -199,5 +230,14 @@ impl PyMOFile {
 
     fn __ne__(&self, other: &PyMOFile) -> PyResult<bool> {
         Ok(self.0 != other.0)
+    }
+
+    fn __iter__(
+        slf: PyRef<'_, Self>,
+    ) -> PyResult<Py<PyMOEntriesIter>> {
+        let iter = PyMOEntriesIter {
+            inner: slf.0.entries.clone().into_iter(),
+        };
+        Py::new(slf.py(), iter)
     }
 }

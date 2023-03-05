@@ -5,9 +5,25 @@ use pyo3::prelude::*;
 use crate::exceptions;
 use crate::pypoentry::PyPOEntry;
 use rspolib::{
-    pofile, AsBytes, FileOptions, MOFile, POFile, Save, SaveAsMOFile,
-    SaveAsPOFile,
+    pofile, AsBytes, FileOptions, MOFile, POEntry, POFile, Save,
+    SaveAsMOFile, SaveAsPOFile,
 };
+
+#[pyclass]
+struct PyPOEntriesIter {
+    inner: std::vec::IntoIter<POEntry>,
+}
+
+#[pymethods]
+impl PyPOEntriesIter {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
+        slf
+    }
+
+    fn __next__(mut slf: PyRefMut<'_, Self>) -> Option<PyPOEntry> {
+        slf.inner.next().map(|entry| PyPOEntry::from(&entry))
+    }
+}
 
 #[pyfunction]
 #[pyo3(name = "pofile")]
@@ -51,9 +67,19 @@ impl PyPOFile {
         Ok(self.0.metadata.clone())
     }
 
+    #[setter]
+    fn set_metadata(&mut self, metadata: HashMap<String, String>) {
+        self.0.metadata = metadata;
+    }
+
     #[getter]
     fn metadata_is_fuzzy(&self) -> PyResult<bool> {
         Ok(self.0.metadata_is_fuzzy)
+    }
+
+    #[setter]
+    fn set_metadata_is_fuzzy(&mut self, metadata_is_fuzzy: bool) {
+        self.0.metadata_is_fuzzy = metadata_is_fuzzy;
     }
 
     #[getter]
@@ -64,6 +90,11 @@ impl PyPOFile {
     #[getter]
     fn wrapwidth(&self) -> PyResult<usize> {
         Ok(self.0.options.wrapwidth)
+    }
+
+    #[setter]
+    fn set_wrapwidth(&mut self, wrapwidth: usize) {
+        self.0.options.wrapwidth = wrapwidth;
     }
 
     #[getter]
@@ -209,13 +240,18 @@ impl PyPOFile {
     }
 
     fn __contains__(&self, entry: &PyPOEntry) -> PyResult<bool> {
-        Ok(self
-            .0
-            .find_by_msgid_msgctxt(
-                &entry._inner().msgid,
-                &entry._inner().msgctxt.unwrap_or("".to_string()),
-            )
-            .is_some())
+        Ok(match entry._inner().msgctxt {
+            Some(msgctxt) => self
+                .0
+                .find_by_msgid_msgctxt(
+                    &entry._inner().msgid,
+                    &msgctxt,
+                )
+                .is_some(),
+            None => {
+                self.0.find_by_msgid(&entry._inner().msgid).is_some()
+            }
+        })
     }
 
     fn __getitem__(&self, index: usize) -> PyResult<PyPOEntry> {
@@ -238,5 +274,14 @@ impl PyPOFile {
 
     fn __ne__(&self, other: &PyPOFile) -> PyResult<bool> {
         Ok(self.0 != other.0)
+    }
+
+    fn __iter__(
+        slf: PyRef<'_, Self>,
+    ) -> PyResult<Py<PyPOEntriesIter>> {
+        let iter = PyPOEntriesIter {
+            inner: slf.0.entries.clone().into_iter(),
+        };
+        Py::new(slf.py(), iter)
     }
 }

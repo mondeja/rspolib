@@ -12,15 +12,38 @@ pip install rspolib
 
 ## Usage
 
+### Read and save a PO file
+
 ```python
 import rspolib
 
-po = rspolib.pofile("path/to/file.po")
+try:
+    po = rspolib.pofile("path/to/file.po")
+except rspolib.SyntaxError as e:
+    print(e)
+    exit(1)
 
 for entry in po:
     print(entry.msgid)
 
 po.save("path/to/other/file.po")
+```
+
+### Read and save a MO file
+
+```python
+import rspolib
+
+try:
+    mo = rspolib.mofile("path/to/file.mo")
+except rspolib.IOError as e:
+    print(e)
+    exit(1)
+
+for entry in mo:
+    print(entry.msgid)
+
+mo.save("path/to/other/file.mo")
 ```
 
 ## Benchmarks

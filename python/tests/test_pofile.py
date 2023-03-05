@@ -3,7 +3,7 @@ def test_parse(runner, tests_dir):
         polib.pofile(f"{tests_dir}/django-complete.po")
 
     runner.run(
-        {"reps": 100},
+        {"reps": 50},
         [
             parse_complete,
         ],
@@ -25,7 +25,7 @@ def test_format(runner, tests_dir):
         )
 
     runner.run(
-        {"reps": 100},
+        {"reps": 70},
         [
             format_as_string,
         ],
@@ -43,7 +43,7 @@ def test_edit_save(runner, tests_dir, output_dir):
         po.save_as_mofile(f"{output_dir}/pofile_edit_save.mo")
 
     runner.run(
-        {"reps": 70},
+        {"reps": 50},
         [
             edit_save,
         ],
@@ -113,10 +113,46 @@ def test_find_entry(runner, tests_dir):
             )
         assert entry.msgstr == "Jul."
 
+    def find_by_msgid_plural(polib):
+        if polib.__name__ == "rspolib":
+            entries = rspo.find("Please submit %d or fewer forms.", by="msgid_plural")
+            msgstr_plural = entries[0].msgstr_plural["0"]
+            # TODO: implementation differing here with polib
+        else:
+            entry = pypo.find("Please submit %d or fewer forms.", by="msgid_plural")
+            msgstr_plural = entry.msgstr_plural[0]
+        assert msgstr_plural == "Por favor, envíe %d formulario o menos."
+
     runner.run(
-        {"reps": 3000},
+        {"reps": 1000},
         [
             find_by_msgid,
             find_by_msgid_msgctxt,
+            find_by_msgid_plural,
+        ],
+    )
+
+
+def test_magic_methods(runner, tests_dir):
+    def iter__(polib):
+        po = polib.pofile(f"{tests_dir}/django-complete.po")
+        assert hasattr(po, "__iter__")
+
+        iterated = False
+        for entry in po:
+            assert entry.msgid
+            iterated = True
+        assert iterated
+
+    def len__(polib):
+        po = polib.pofile(f"{tests_dir}/django-complete.po")
+        assert hasattr(po, "__len__")
+        assert len(po) > 320
+
+    runner.run(
+        {"reps": 50},
+        [
+            iter__,
+            len__,
         ],
     )

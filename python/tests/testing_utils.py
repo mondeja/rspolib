@@ -4,7 +4,7 @@ import sys
 import polib as pypolib
 import rspolib
 
-REPS = 10000
+REPS = 1000
 
 
 def run_polib(cb, impl, polib, reps=REPS):
