@@ -13,7 +13,7 @@ fn mofile_to_string(file: &MOFile) {
 
 fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function(
-        "pofile('django-complete.po').to_string()",
+        "POFile('django-complete.po').to_string()",
         |b| {
             b.iter(|| {
                 pofile_to_string(black_box(
@@ -22,7 +22,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             })
         },
     );
-    c.bench_function("mofile('all.mo').to_string()", |b| {
+    c.bench_function("MOFile('all.mo').to_string()", |b| {
         b.iter(|| {
             mofile_to_string(black_box(
                 &mofile("tests-data/all.mo").unwrap(),

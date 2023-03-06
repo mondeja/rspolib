@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use unicode_linebreak::{
     linebreaks as unicode_linebreaks, BreakOpportunity,
 };
-use unicode_width::UnicodeWidthStr;
+use unicode_width::UnicodeWidthChar;
 
 #[allow(clippy::mut_range_bound)]
 fn get_linebreaks(
@@ -13,9 +13,7 @@ fn get_linebreaks(
 ) -> Vec<usize> {
     let char_indices_widths: HashMap<usize, usize> = text
         .char_indices()
-        .map(|(i, c)| {
-            (i, UnicodeWidthStr::width(c.to_string().as_str()))
-        })
+        .map(|(i, c)| (i, UnicodeWidthChar::width(c).unwrap_or(0)))
         .collect();
     let mut ret = vec![];
 
@@ -59,7 +57,8 @@ pub(crate) fn wrap(text: &str, wrapwidth: usize) -> Vec<String> {
         wrapwidth,
     );
 
-    let mut ret: Vec<String> = vec![];
+    let mut ret: Vec<String> =
+        Vec::with_capacity(linebreaks.len() + 1);
     let mut prev_lb = 0;
     for lb in linebreaks {
         ret.push(text[prev_lb..lb].to_string());

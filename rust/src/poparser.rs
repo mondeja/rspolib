@@ -163,7 +163,7 @@ impl POFileParser {
         handler: &mut LinesHandler,
     ) -> Result<(), SyntaxError> {
         let first_line = handler.next().unwrap_or("".to_string());
-        self.parse_line(&maybe_lstrip_utf8_bom(first_line))?;
+        self.parse_line(maybe_lstrip_utf8_bom(&first_line))?;
 
         for line in handler.by_ref() {
             self.parse_line(&line)?;
@@ -217,8 +217,8 @@ impl POFileParser {
     }
 
     fn tokens_from_line(&self, line: &str) -> Vec<String> {
-        let mut tokens: Vec<String> = vec![];
-        for token in line.split_whitespace() {
+        let mut tokens: Vec<String> = Vec::with_capacity(3);
+        for token in line.split_ascii_whitespace() {
             tokens.push(token.to_string());
             if tokens.len() == 3 {
                 break;
@@ -237,10 +237,7 @@ impl POFileParser {
 
         let mut tokens = self.tokens_from_line(line);
         let mut nb_tokens = tokens.len();
-        if nb_tokens == 0 {
-            return Ok(());
-        }
-        if tokens[0] == "#~|" {
+        if nb_tokens == 0 || tokens[0] == "#~|" {
             return Ok(());
         } else if nb_tokens > 1 && tokens[0] == "#~" {
             line = line[3..].trim();
@@ -639,8 +636,8 @@ fn transition_fn_factory(action: Action) -> &'static TransitionFn {
     }
 }
 
-fn maybe_lstrip_utf8_bom(line: String) -> String {
-    line.replace('\u{feff}', "")
+fn maybe_lstrip_utf8_bom(line: &str) -> &str {
+    line.trim_start_matches('\u{feff}')
 }
 
 fn find_unescaped_double_quote_index(line: &str) -> Option<usize> {
