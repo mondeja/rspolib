@@ -5,6 +5,8 @@ edition = "2021"
 readme = "../README.md"
 description = "PO and MO files manipulation library."
 license = "MIT"
+documentation = "https://docs.rs/rspolib"
+repository = "https://github.com/mondeja/rspolib"
 
 [lib]
 name = "rspolib"

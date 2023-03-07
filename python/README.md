@@ -46,14 +46,4 @@ for entry in mo:
 mo.save("path/to/other/file.mo")
 ```
 
-## Benchmarks
-
-You can run some guidance benchmarks to compare with [polib] with:
-
-```bash
-pip install -r dev-requirements.txt
-pytest -svv
-```
-
 [rspolib]: https://github.com/mondeja/rspolib
-[polib]: https://github.com/izimobil/polib
