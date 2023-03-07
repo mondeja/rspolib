@@ -38,7 +38,7 @@ fn by_msgid_plural_predicate(entry: &MOEntry, value: &str) -> bool {
     entry.msgid_plural.as_ref().unwrap_or(&"".to_string()) == value
 }
 
-/// MO file factory function
+/// MO files factory function
 ///
 /// Read a MO file from a path, parse from content as bytes or
 /// from a [FileOptions] struct.

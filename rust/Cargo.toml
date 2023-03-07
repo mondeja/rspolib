@@ -1,6 +1,6 @@
 [package]
 name = "rspolib"
-version = "0.0.3"
+version = "0.0.4"
 edition = "2021"
 readme = "../README.md"
 description = "PO and MO files manipulation library."

@@ -126,7 +126,7 @@ impl POEntry {
 
         // occurrences
         if !self.obsolete && !self.occurrences.is_empty() {
-            let files_repr = self
+            let whitespace_sep_occurrences = self
                 .occurrences
                 .iter()
                 .map(|(fpath, lineno)| {
@@ -135,21 +135,30 @@ impl POEntry {
                     }
                     format!("{}:{}", fpath, lineno)
                 })
-                .collect::<Vec<String>>()
-                .join(" ");
-            if UnicodeWidthStr::width(files_repr.as_str()) + 3
-                > wrapwidth
-            {
-                let wrapped = wrap(&files_repr, wrapwidth - 3)
-                    .iter()
-                    .map(|s| format!("#: {}", s))
-                    .collect::<Vec<String>>()
-                    .join("\n");
-                ret.push_str(&wrapped);
-            } else {
-                ret.push_str("#: ");
-                ret.push_str(&files_repr);
+                .collect::<Vec<String>>();
+
+            let mut files_repr: Vec<String> = vec![];
+
+            let mut current_line_occs: Vec<&str> = vec![];
+            let mut current_width = 2;
+            for occ in &whitespace_sep_occurrences {
+                let occ_width = UnicodeWidthStr::width(occ.as_str());
+                if current_width + occ_width + 1 > wrapwidth {
+                    let curr_line =
+                        format!("#: {}", current_line_occs.join(" "));
+                    files_repr.push(curr_line);
+                    current_width = occ_width + 2;
+                } else {
+                    current_line_occs.push(occ);
+                    current_width += occ_width + 1;
+                }
             }
+            if !current_line_occs.is_empty() {
+                let curr_line =
+                    format!("#: {}", current_line_occs.join(" "));
+                files_repr.push(curr_line);
+            }
+            ret.push_str(&files_repr.join("\n"));
             ret.push('\n');
         }
 

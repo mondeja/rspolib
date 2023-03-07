@@ -66,6 +66,7 @@ fn by_previous_msgctxt_predicate(
 ///
 /// * A string as path to an existent file.
 /// * The content of a PO file as string.
+/// * The content of a PO file as bytes.
 /// * A [FileOptions] struct.
 ///
 /// # Examples

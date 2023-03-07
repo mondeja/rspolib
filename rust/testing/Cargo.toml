@@ -1,6 +1,6 @@
 [package]
 name = "rspolib-testing"
-version = "0.0.3"
+version = "0.0.4"
 edition = "2021"
 description = "Testing utilities for rspolib."
 license = "MIT"
