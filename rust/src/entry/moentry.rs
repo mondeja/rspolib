@@ -1,8 +1,9 @@
+use std::cmp::Ordering;
 use std::fmt;
 
 use crate::entry::{
     maybe_msgid_msgctxt_eot_split, mo_entry_to_string,
-    MsgidEotMsgctxt, POEntry, Translated,
+    EntryCmpByOptions, MsgidEotMsgctxt, POEntry, Translated,
 };
 use crate::traits::Merge;
 
@@ -53,11 +54,100 @@ impl MOEntry {
         }
     }
 
+    /// Convert to a string representation with a given wrap width
     pub fn to_string_with_wrapwidth(
         &self,
         wrapwidth: usize,
     ) -> String {
         mo_entry_to_string(self, wrapwidth, "")
+    }
+
+    /// Compare the current entry with other entry
+    ///
+    /// You can disable some comparison options by setting the corresponding
+    /// field in `options` to `false`. See [EntryCmpByOptions].
+    pub fn cmp_by(
+        &self,
+        other: &Self,
+        options: &EntryCmpByOptions,
+    ) -> Ordering {
+        let placeholder = &"\0".to_string();
+
+        if options.by_msgctxt {
+            let msgctxt = self
+                .msgctxt
+                .as_ref()
+                .unwrap_or(placeholder)
+                .to_string();
+            let other_msgctxt = other
+                .msgctxt
+                .as_ref()
+                .unwrap_or(placeholder)
+                .to_string();
+            if msgctxt > other_msgctxt {
+                return Ordering::Greater;
+            } else if msgctxt < other_msgctxt {
+                return Ordering::Less;
+            }
+        }
+
+        if options.by_msgid_plural {
+            let msgid_plural = self
+                .msgid_plural
+                .as_ref()
+                .unwrap_or(placeholder)
+                .to_string();
+            let other_msgid_plural = other
+                .msgid_plural
+                .as_ref()
+                .unwrap_or(placeholder)
+                .to_string();
+            if msgid_plural > other_msgid_plural {
+                return Ordering::Greater;
+            } else if msgid_plural < other_msgid_plural {
+                return Ordering::Less;
+            }
+        }
+
+        if options.by_msgstr_plural {
+            let mut msgstr_plural = self.msgstr_plural.clone();
+            msgstr_plural.sort();
+            let mut other_msgstr_plural = other.msgstr_plural.clone();
+            other_msgstr_plural.sort();
+            if msgstr_plural > other_msgstr_plural {
+                return Ordering::Greater;
+            } else if msgstr_plural < other_msgstr_plural {
+                return Ordering::Less;
+            }
+        }
+
+        if options.by_msgid {
+            if self.msgid > other.msgid {
+                return Ordering::Greater;
+            } else if self.msgid < other.msgid {
+                return Ordering::Less;
+            }
+        }
+
+        if options.by_msgstr {
+            let msgstr = self
+                .msgstr
+                .as_ref()
+                .unwrap_or(placeholder)
+                .to_string();
+            let other_msgstr = other
+                .msgstr
+                .as_ref()
+                .unwrap_or(placeholder)
+                .to_string();
+            if msgstr > other_msgstr {
+                return Ordering::Greater;
+            } else if msgstr < other_msgstr {
+                return Ordering::Less;
+            }
+        }
+
+        Ordering::Equal
     }
 }
 

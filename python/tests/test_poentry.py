@@ -70,3 +70,17 @@ def test_methods(runner):
         fuzzy,
         to_string_with_wrapwidth,
     )
+
+
+def test_magic_methods(runner):
+    def cmp__(polib):
+        entry1 = polib.POEntry(msgid="msgid 1", msgstr="msgstr 1")
+        entry2 = polib.POEntry(msgid="msgid 1", msgstr="msgstr 1")
+        entry3 = polib.POEntry(msgid="msgid 2", msgstr="msgstr 2")
+        assert entry1.__cmp__(entry2) == 0
+        assert entry1.__cmp__(entry3) == -1
+        assert entry3.__cmp__(entry2) == 1
+
+    runner.run(
+        cmp__,
+    )

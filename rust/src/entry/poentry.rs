@@ -1,10 +1,12 @@
+use std::cmp::Ordering;
 use std::fmt;
 
 use unicode_width::UnicodeWidthStr;
 
 use crate::entry::{
-    maybe_msgid_msgctxt_eot_split, mo_entry_to_string, MOEntry,
-    MsgidEotMsgctxt, POStringField, Translated,
+    maybe_msgid_msgctxt_eot_split, mo_entry_to_string,
+    EntryCmpByOptions, MOEntry, MsgidEotMsgctxt, POStringField,
+    Translated,
 };
 use crate::errors::EscapingError;
 use crate::escaping::unescape;
@@ -264,6 +266,125 @@ impl POEntry {
         }
 
         Ok(entry)
+    }
+
+    /// Compare the current entry with other entry
+    ///
+    /// You can disable some comparison options by setting the corresponding
+    /// field in `options` to `false`. See [EntryCmpByOptions].
+    pub fn cmp_by(
+        &self,
+        other: &Self,
+        options: &EntryCmpByOptions,
+    ) -> Ordering {
+        if options.by_obsolete && self.obsolete != other.obsolete {
+            match self.obsolete {
+                true => return Ordering::Less,
+                false => return Ordering::Greater,
+            }
+        }
+
+        if options.by_occurrences {
+            let mut occ1 = self.occurrences.clone();
+            occ1.sort();
+            let mut occ2 = other.occurrences.clone();
+            occ2.sort();
+            if occ1 > occ2 {
+                return Ordering::Greater;
+            } else if occ1 < occ2 {
+                return Ordering::Less;
+            }
+        }
+
+        if options.by_flags {
+            let mut flags1 = self.flags.clone();
+            flags1.sort();
+            let mut flags2 = other.flags.clone();
+            flags2.sort();
+            if flags1 > flags2 {
+                return Ordering::Greater;
+            } else if flags1 < flags2 {
+                return Ordering::Less;
+            }
+        }
+
+        let placeholder = &"\0".to_string();
+
+        if options.by_msgctxt {
+            let msgctxt = self
+                .msgctxt
+                .as_ref()
+                .unwrap_or(placeholder)
+                .to_string();
+            let other_msgctxt = other
+                .msgctxt
+                .as_ref()
+                .unwrap_or(placeholder)
+                .to_string();
+            if msgctxt > other_msgctxt {
+                return Ordering::Greater;
+            } else if msgctxt < other_msgctxt {
+                return Ordering::Less;
+            }
+        }
+
+        if options.by_msgid_plural {
+            let msgid_plural = self
+                .msgid_plural
+                .as_ref()
+                .unwrap_or(placeholder)
+                .to_string();
+            let other_msgid_plural = other
+                .msgid_plural
+                .as_ref()
+                .unwrap_or(placeholder)
+                .to_string();
+            if msgid_plural > other_msgid_plural {
+                return Ordering::Greater;
+            } else if msgid_plural < other_msgid_plural {
+                return Ordering::Less;
+            }
+        }
+
+        if options.by_msgstr_plural {
+            let mut msgstr_plural = self.msgstr_plural.clone();
+            msgstr_plural.sort();
+            let mut other_msgstr_plural = other.msgstr_plural.clone();
+            other_msgstr_plural.sort();
+            if msgstr_plural > other_msgstr_plural {
+                return Ordering::Greater;
+            } else if msgstr_plural < other_msgstr_plural {
+                return Ordering::Less;
+            }
+        }
+
+        if options.by_msgid {
+            if self.msgid > other.msgid {
+                return Ordering::Greater;
+            } else if self.msgid < other.msgid {
+                return Ordering::Less;
+            }
+        }
+
+        if options.by_msgstr {
+            let msgstr = self
+                .msgstr
+                .as_ref()
+                .unwrap_or(placeholder)
+                .to_string();
+            let other_msgstr = other
+                .msgstr
+                .as_ref()
+                .unwrap_or(placeholder)
+                .to_string();
+            if msgstr > other_msgstr {
+                return Ordering::Greater;
+            } else if msgstr < other_msgstr {
+                return Ordering::Less;
+            }
+        }
+
+        Ordering::Equal
     }
 }
 
@@ -764,5 +885,230 @@ mod tests {
             "msgstr \"\"\n"
         );
         assert_eq!(file.to_string(), expected);
+    }
+
+    #[test]
+    fn cmp_by_obsolete() {
+        let mut entry1 = POEntry::new(0);
+        let mut entry2 = POEntry::new(0);
+
+        // options
+        let by_obsolete =
+            EntryCmpByOptions::new().by_all(false).by_obsolete(true);
+        let by_nothing = EntryCmpByOptions::new().by_all(false);
+
+        entry1.obsolete = true;
+        entry2.obsolete = false;
+
+        assert_eq!(
+            entry1.cmp_by(&entry2, &by_obsolete),
+            Ordering::Less,
+        );
+        assert_eq!(
+            entry1.cmp_by(&entry2, &by_nothing),
+            Ordering::Equal,
+        );
+        assert_eq!(
+            entry2.cmp_by(&entry1, &by_obsolete),
+            Ordering::Greater,
+        );
+
+        entry1.obsolete = false;
+        assert_eq!(
+            entry1.cmp_by(&entry2, &by_obsolete),
+            Ordering::Equal,
+        );
+    }
+
+    #[test]
+    fn cmp_by_msgid() {
+        let mut entry1 = POEntry::new(0);
+        let mut entry2 = POEntry::new(0);
+
+        // options
+        let by_msgid =
+            EntryCmpByOptions::new().by_all(false).by_msgid(true);
+        let by_nothing = EntryCmpByOptions::new().by_all(false);
+
+        entry1.msgid = "a".to_string();
+        entry2.msgid = "b".to_string();
+
+        assert_eq!(entry1.cmp_by(&entry2, &by_msgid), Ordering::Less);
+        assert_eq!(
+            entry2.cmp_by(&entry1, &by_msgid),
+            Ordering::Greater,
+        );
+        assert_eq!(
+            entry2.cmp_by(&entry1, &by_nothing),
+            Ordering::Equal,
+        );
+    }
+
+    #[test]
+    fn cmp_by_msgstr() {
+        let mut entry1 = POEntry::new(0);
+        let mut entry2 = POEntry::new(0);
+
+        // options
+        let by_msgstr =
+            EntryCmpByOptions::new().by_all(false).by_msgstr(true);
+        let by_nothing = EntryCmpByOptions::new().by_all(false);
+
+        entry1.msgstr = Some("a".to_string());
+        entry2.msgstr = Some("b".to_string());
+
+        assert_eq!(
+            entry1.cmp_by(&entry2, &by_msgstr),
+            Ordering::Less
+        );
+        assert_eq!(
+            entry2.cmp_by(&entry1, &by_msgstr),
+            Ordering::Greater,
+        );
+        assert_eq!(
+            entry2.cmp_by(&entry1, &by_nothing),
+            Ordering::Equal,
+        );
+    }
+
+    #[test]
+    fn cmp_by_msgctxt() {
+        let mut entry1 = POEntry::new(0);
+        let mut entry2 = POEntry::new(0);
+
+        // options
+        let by_msgctxt =
+            EntryCmpByOptions::new().by_all(false).by_msgctxt(true);
+        let by_nothing = EntryCmpByOptions::new().by_all(false);
+
+        entry1.msgctxt = Some("a".to_string());
+        entry2.msgctxt = Some("b".to_string());
+
+        assert_eq!(
+            entry1.cmp_by(&entry2, &by_msgctxt),
+            Ordering::Less
+        );
+        assert_eq!(
+            entry2.cmp_by(&entry1, &by_msgctxt),
+            Ordering::Greater,
+        );
+        assert_eq!(
+            entry2.cmp_by(&entry1, &by_nothing),
+            Ordering::Equal,
+        );
+    }
+
+    #[test]
+    fn cmp_by_msgid_plural() {
+        let mut entry1 = POEntry::new(0);
+        let mut entry2 = POEntry::new(0);
+
+        // options
+        let by_msgid_plural = EntryCmpByOptions::new()
+            .by_all(false)
+            .by_msgid_plural(true);
+        let by_nothing = EntryCmpByOptions::new().by_all(false);
+
+        entry1.msgid_plural = Some("a".to_string());
+        entry2.msgid_plural = Some("b".to_string());
+
+        assert_eq!(
+            entry1.cmp_by(&entry2, &by_msgid_plural),
+            Ordering::Less,
+        );
+        assert_eq!(
+            entry2.cmp_by(&entry1, &by_msgid_plural),
+            Ordering::Greater,
+        );
+        assert_eq!(
+            entry2.cmp_by(&entry1, &by_nothing),
+            Ordering::Equal,
+        );
+    }
+
+    #[test]
+    fn cmp_by_msgstr_plural() {
+        let mut entry1 = POEntry::new(0);
+        let mut entry2 = POEntry::new(0);
+
+        // options
+        let by_msgstr_plural = EntryCmpByOptions::new()
+            .by_all(false)
+            .by_msgstr_plural(true);
+        let by_nothing = EntryCmpByOptions::new().by_all(false);
+
+        entry1.msgstr_plural.insert(0, "a".to_string());
+        entry2.msgstr_plural.insert(0, "b".to_string());
+
+        assert_eq!(
+            entry1.cmp_by(&entry2, &by_msgstr_plural),
+            Ordering::Less,
+        );
+        assert_eq!(
+            entry2.cmp_by(&entry1, &by_msgstr_plural),
+            Ordering::Greater,
+        );
+        assert_eq!(
+            entry2.cmp_by(&entry1, &by_nothing),
+            Ordering::Equal,
+        );
+    }
+
+    #[test]
+    fn cmp_by_flags() {
+        let mut entry1 = POEntry::new(0);
+        let mut entry2 = POEntry::new(0);
+
+        // options
+        let by_flags =
+            EntryCmpByOptions::new().by_all(false).by_flags(true);
+        let by_nothing = EntryCmpByOptions::new().by_all(false);
+
+        entry1.flags.push("a".to_string());
+        entry2.flags.push("b".to_string());
+
+        assert_eq!(entry1.cmp_by(&entry2, &by_flags), Ordering::Less);
+        assert_eq!(
+            entry2.cmp_by(&entry1, &by_flags),
+            Ordering::Greater,
+        );
+        assert_eq!(
+            entry2.cmp_by(&entry1, &by_nothing),
+            Ordering::Equal,
+        );
+    }
+
+    #[test]
+    fn cmp_by_occurrences() {
+        let mut entry1 = POEntry::new(0);
+        let mut entry2 = POEntry::new(0);
+
+        // options
+        let by_occurrences = EntryCmpByOptions::new()
+            .by_all(false)
+            .by_occurrences(true);
+        let by_nothing = EntryCmpByOptions::new().by_all(false);
+
+        entry1.occurrences.push(("a".to_string(), "30".to_string()));
+        entry2.occurrences.push(("a".to_string(), "40".to_string()));
+
+        assert_eq!(
+            entry1.cmp_by(&entry2, &by_occurrences),
+            Ordering::Less,
+        );
+        assert_eq!(
+            entry2.cmp_by(&entry1, &by_occurrences),
+            Ordering::Greater,
+        );
+        assert_eq!(
+            entry2.cmp_by(&entry1, &by_nothing),
+            Ordering::Equal,
+        );
+
+        entry2.occurrences[0] = ("a".to_string(), "30".to_string());
+        assert_eq!(
+            entry2.cmp_by(&entry1, &by_nothing),
+            Ordering::Equal,
+        );
     }
 }

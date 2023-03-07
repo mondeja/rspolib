@@ -1,7 +1,9 @@
+use std::cmp::Ordering;
+
 use pyo3::prelude::*;
 
 use rspolib::prelude::*;
-use rspolib::MOEntry;
+use rspolib::{EntryCmpByOptions, MOEntry};
 
 #[pyclass]
 #[pyo3(name = "MOEntry")]
@@ -131,11 +133,86 @@ impl PyMOEntry {
     }
 
     fn __eq__(&self, other: &PyMOEntry) -> PyResult<bool> {
-        Ok(self.0 == other.0)
+        Ok(self
+            .0
+            .cmp_by(&other._inner(), &EntryCmpByOptions::default())
+            == Ordering::Equal)
     }
 
     fn __ne__(&self, other: &PyMOEntry) -> PyResult<bool> {
-        Ok(self.0 != other.0)
+        Ok(self
+            .0
+            .cmp_by(&other._inner(), &EntryCmpByOptions::default())
+            != Ordering::Equal)
+    }
+
+    fn __gt__(&self, other: &PyMOEntry) -> PyResult<bool> {
+        Ok(self
+            .0
+            .cmp_by(&other._inner(), &EntryCmpByOptions::default())
+            == Ordering::Greater)
+    }
+
+    fn __lt__(&self, other: &PyMOEntry) -> PyResult<bool> {
+        Ok(self
+            .0
+            .cmp_by(&other._inner(), &EntryCmpByOptions::default())
+            == Ordering::Less)
+    }
+
+    fn __ge__(&self, other: &PyMOEntry) -> PyResult<bool> {
+        Ok(self
+            .0
+            .cmp_by(&other._inner(), &EntryCmpByOptions::default())
+            != Ordering::Less)
+    }
+
+    fn __le__(&self, other: &PyMOEntry) -> PyResult<bool> {
+        Ok(self
+            .0
+            .cmp_by(&other._inner(), &EntryCmpByOptions::default())
+            != Ordering::Greater)
+    }
+
+    fn __cmp__(&self, other: &PyMOEntry) -> PyResult<i8> {
+        Ok(
+            match self.0.cmp_by(
+                &other._inner(),
+                &EntryCmpByOptions::default(),
+            ) {
+                Ordering::Less => -1,
+                Ordering::Equal => 0,
+                Ordering::Greater => 1,
+            },
+        )
+    }
+
+    #[pyo3(signature=(other, msgid=true, msgstr=true, msgctxt=true, msgid_plural=true, msgstr_plural=true))]
+    fn cmp_by(
+        &self,
+        other: &PyMOEntry,
+        msgid: bool,
+        msgstr: bool,
+        msgctxt: bool,
+        msgid_plural: bool,
+        msgstr_plural: bool,
+    ) -> PyResult<i8> {
+        Ok(
+            match self.0.cmp_by(
+                &other._inner(),
+                &EntryCmpByOptions::from(&vec![
+                    ("msgid".to_string(), msgid),
+                    ("msgstr".to_string(), msgstr),
+                    ("msgctxt".to_string(), msgctxt),
+                    ("msgid_plural".to_string(), msgid_plural),
+                    ("msgstr_plural".to_string(), msgstr_plural),
+                ]),
+            ) {
+                Ordering::Less => -1,
+                Ordering::Equal => 0,
+                Ordering::Greater => 1,
+            },
+        )
     }
 }
 

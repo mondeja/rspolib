@@ -70,7 +70,8 @@ mod twrapper;
 
 pub use crate::entry::{
     mo_metadata_entry_to_string, po_metadata_entry_to_string,
-    MOEntry, MsgidEotMsgctxt, POEntry, Translated as TranslatedEntry,
+    EntryCmpByOptions, MOEntry, MsgidEotMsgctxt, POEntry,
+    Translated as TranslatedEntry,
 };
 pub use crate::file::{
     mofile::{mofile, MOFile},

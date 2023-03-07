@@ -12,7 +12,7 @@ pub use moentry::MOEntry;
 pub use poentry::POEntry;
 
 /// Provides a function `translated` to represent
-/// if some struct is translated
+/// if an entry struct is translated
 pub trait Translated {
     fn translated(&self) -> bool;
 }
@@ -281,5 +281,137 @@ impl<'a> fmt::Display for POStringField<'a> {
         }
 
         write!(f, "{}", ret)
+    }
+}
+
+/// A struct to compare two entries.
+///
+/// ```rust
+/// use std::cmp::Ordering;
+/// use rspolib::{POEntry, EntryCmpByOptions};
+///
+/// let mut entry1 = POEntry::from("msgid 1");
+/// let entry2 = POEntry::from("msgid 2");
+///
+/// let compare_by_all_fields = EntryCmpByOptions::new();
+/// let compare_by_msgid_only = EntryCmpByOptions::new()
+///     .by_all(false)
+///     .by_msgid(true);
+///
+/// assert_eq!(entry1.cmp_by(&entry2, &compare_by_msgid_only), Ordering::Less);
+/// assert_eq!(entry2.cmp_by(&entry1, &compare_by_msgid_only), Ordering::Greater);
+///
+/// entry1.msgid = "msgid 2".to_string();
+/// assert_eq!(entry1.cmp_by(&entry2, &compare_by_msgid_only), Ordering::Equal);
+///
+/// entry1.msgstr = Some("msgstr 1".to_string());
+/// assert_eq!(entry1.cmp_by(&entry2, &compare_by_msgid_only), Ordering::Equal);
+/// assert_eq!(entry1.cmp_by(&entry2, &compare_by_all_fields), Ordering::Greater);
+/// ```
+pub struct EntryCmpByOptions {
+    by_msgid: bool,
+    by_msgstr: bool,
+    by_msgctxt: bool,
+    by_obsolete: bool,
+    by_occurrences: bool,
+    by_msgid_plural: bool,
+    by_msgstr_plural: bool,
+    by_flags: bool,
+}
+
+impl EntryCmpByOptions {
+    /// Creates a instance of [EntryCmpByOptions] with comparisons for all fields enabled
+    pub fn new() -> Self {
+        Self {
+            by_msgid: true,
+            by_msgstr: true,
+            by_msgctxt: true,
+            by_obsolete: true,
+            by_occurrences: true,
+            by_msgid_plural: true,
+            by_msgstr_plural: true,
+            by_flags: true,
+        }
+    }
+
+    pub fn by_msgid(mut self, by_msgid: bool) -> Self {
+        self.by_msgid = by_msgid;
+        self
+    }
+
+    pub fn by_msgstr(mut self, by_msgstr: bool) -> Self {
+        self.by_msgstr = by_msgstr;
+        self
+    }
+
+    pub fn by_msgctxt(mut self, by_msgctxt: bool) -> Self {
+        self.by_msgctxt = by_msgctxt;
+        self
+    }
+
+    pub fn by_obsolete(mut self, by_obsolete: bool) -> Self {
+        self.by_obsolete = by_obsolete;
+        self
+    }
+
+    pub fn by_occurrences(mut self, by_occurrences: bool) -> Self {
+        self.by_occurrences = by_occurrences;
+        self
+    }
+
+    pub fn by_msgid_plural(mut self, by_msgid_plural: bool) -> Self {
+        self.by_msgid_plural = by_msgid_plural;
+        self
+    }
+
+    pub fn by_msgstr_plural(
+        mut self,
+        by_msgstr_plural: bool,
+    ) -> Self {
+        self.by_msgstr_plural = by_msgstr_plural;
+        self
+    }
+
+    pub fn by_flags(mut self, by_flags: bool) -> Self {
+        self.by_flags = by_flags;
+        self
+    }
+
+    pub fn by_all(mut self, by_all: bool) -> Self {
+        self.by_msgid = by_all;
+        self.by_msgstr = by_all;
+        self.by_msgctxt = by_all;
+        self.by_obsolete = by_all;
+        self.by_occurrences = by_all;
+        self.by_msgid_plural = by_all;
+        self.by_msgstr_plural = by_all;
+        self.by_flags = by_all;
+        self
+    }
+}
+
+impl Default for EntryCmpByOptions {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl From<&Vec<(String, bool)>> for EntryCmpByOptions {
+    fn from(options: &Vec<(String, bool)>) -> Self {
+        let mut ret = Self::new();
+        for (key, value) in options {
+            match key.as_str() {
+                "msgid" => ret.by_msgid = *value,
+                "msgstr" => ret.by_msgstr = *value,
+                "msgctxt" => ret.by_msgctxt = *value,
+                "obsolete" => ret.by_obsolete = *value,
+                "occurrences" => ret.by_occurrences = *value,
+                "msgid_plural" => ret.by_msgid_plural = *value,
+                "msgstr_plural" => ret.by_msgstr_plural = *value,
+                "flags" => ret.by_flags = *value,
+                _ => {}
+            }
+        }
+        ret
     }
 }
