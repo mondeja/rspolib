@@ -1,5 +1,5 @@
 # CHANGELOG
 
-## 0.0.1 - 2023-03-04
+## 0.0.2 - 2023-03-04 -> 2023-03-07
 
-First alpha release.
+Alpha releases.
