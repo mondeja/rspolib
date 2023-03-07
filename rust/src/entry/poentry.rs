@@ -6,6 +6,8 @@ use crate::entry::{
     maybe_msgid_msgctxt_eot_split, mo_entry_to_string, MOEntry,
     MsgidEotMsgctxt, POStringField, Translated,
 };
+use crate::errors::EscapingError;
+use crate::escaping::unescape;
 use crate::traits::Merge;
 use crate::twrapper::wrap;
 
@@ -214,6 +216,45 @@ impl POEntry {
             },
         ));
         ret
+    }
+
+    pub fn unescaped(&self) -> Result<Self, EscapingError> {
+        let mut entry = self.clone();
+        entry.msgid = unescape(&self.msgid)?;
+
+        if let Some(msgstr) = &self.msgstr {
+            entry.msgstr = Some(unescape(msgstr)?);
+        }
+
+        if let Some(msgid_plural) = &self.msgid_plural {
+            entry.msgid_plural = Some(unescape(msgid_plural)?);
+        }
+
+        for msgstr_plural in &mut entry.msgstr_plural {
+            *msgstr_plural = unescape(msgstr_plural)?;
+        }
+
+        if let Some(msgctxt) = &self.msgctxt {
+            entry.msgctxt = Some(unescape(msgctxt)?);
+        }
+
+        if let Some(previous_msgid) = &self.previous_msgid {
+            entry.previous_msgid = Some(unescape(previous_msgid)?);
+        }
+
+        if let Some(previous_msgid_plural) =
+            &self.previous_msgid_plural
+        {
+            entry.previous_msgid_plural =
+                Some(unescape(previous_msgid_plural)?);
+        }
+
+        if let Some(previous_msgctxt) = &self.previous_msgctxt {
+            entry.previous_msgctxt =
+                Some(unescape(previous_msgctxt)?);
+        }
+
+        Ok(entry)
     }
 }
 
@@ -686,7 +727,7 @@ mod tests {
         entry.msgid = "aa\\bb".to_string();
         assert_eq!(
             entry.to_string(),
-            "msgid \"aa\\bb\"\nmsgstr \"\"\n",
+            "msgid \"aa\\\\bb\"\nmsgstr \"\"\n",
         );
     }
 
@@ -704,8 +745,8 @@ mod tests {
             "msgstr \"\"\n",
             "\nmsgid \"\"\n",
             "\"Some line that contain special characters",
-            " \\\" and that \\t is very, very, \"\n",
-            "\"very long...: %s \\n\"\n",
+            " \\\" and that \\t is very, very, very \"\n",
+            "\"long...: %s \\n\"\n",
             "msgstr \"\"\n",
             "\nmsgid \"\"\n",
             "\"Some line that contain special characters",

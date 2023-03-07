@@ -31,5 +31,9 @@ fn py_rspolib(py: Python, m: &PyModule) -> PyResult<()> {
     // Exceptions
     m.add("IOError", py.get_type::<exceptions::IOError>())?;
     m.add("SyntaxError", py.get_type::<exceptions::SyntaxError>())?;
+    m.add(
+        "EscapingError",
+        py.get_type::<exceptions::EscapingError>(),
+    )?;
     Ok(())
 }

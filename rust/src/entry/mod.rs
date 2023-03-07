@@ -2,7 +2,7 @@ use std::fmt;
 
 use unicode_width::UnicodeWidthStr;
 
-use crate::escaping::{escape, unescape_except_double_quotes};
+use crate::escaping::escape;
 use crate::twrapper::wrap;
 
 pub mod moentry;
@@ -58,7 +58,7 @@ fn metadata_msgstr_formatter(
     let mut ret = String::from("msgstr \"\"\n");
     for line in msgstr.lines() {
         ret.push('"');
-        ret.push_str(line);
+        ret.push_str(&escape(line));
         ret.push_str(r"\n");
         ret.push('"');
         ret.push('\n');
@@ -272,16 +272,12 @@ impl<'a> fmt::Display for POStringField<'a> {
             self.delflag,
             self.fieldname,
             repr_plural_index,
-            unescape_except_double_quotes(&lines.remove(0)),
+            &lines.remove(0),
         );
 
         // format other lines
         for line in lines {
-            ret.push_str(&format!(
-                "{}\"{}\"\n",
-                self.delflag,
-                unescape_except_double_quotes(&line)
-            ));
+            ret.push_str(&format!("{}\"{}\"\n", self.delflag, &line));
         }
 
         write!(f, "{}", ret)

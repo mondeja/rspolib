@@ -411,6 +411,7 @@ impl From<Vec<&MOEntry>> for MOFile {
 mod tests {
     use super::*;
     use crate::bitwise::as_u32_le;
+    use crate::pofile;
     use std::fs;
     use std::io::Read;
     use std::path::Path;
@@ -442,6 +443,19 @@ mod tests {
 
         assert_eq!(entry.msgid, "");
         assert_eq!(entry.msgstr.is_none(), true);
+    }
+
+    #[test]
+    fn mofile_from_pofile() {
+        let path = "tests-data/all.po";
+        let po_file = pofile(path).unwrap();
+        let mo_file = MOFile::from(&po_file);
+
+        assert_eq!(
+            mo_file.entries.len(),
+            po_file.translated_entries().len(),
+        );
+        assert_eq!(mo_file.metadata.len(), po_file.metadata.len());
     }
 
     #[test]

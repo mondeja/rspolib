@@ -6,7 +6,7 @@ use crate::exceptions;
 use crate::pymoentry::PyMOEntry;
 use rspolib::{
     mofile, AsBytes, FileOptions, MOEntry, MOFile, Save,
-    SaveAsMOFile, SaveAsPOFile,
+    SaveAsMOFile, SaveAsPOFile, MAGIC, MAGIC_SWAPPED,
 };
 
 #[pyclass]
@@ -48,6 +48,18 @@ pub struct PyMOFile(MOFile);
 
 #[pymethods]
 impl PyMOFile {
+    #[allow(non_snake_case)]
+    #[classattr]
+    fn MAGIC() -> PyResult<u32> {
+        Ok(MAGIC)
+    }
+
+    #[allow(non_snake_case)]
+    #[classattr]
+    fn MAGIC_SWAPPED() -> PyResult<u32> {
+        Ok(MAGIC_SWAPPED)
+    }
+
     #[getter]
     fn magic_number(&self) -> PyResult<u32> {
         Ok(self.0.magic_number.unwrap_or(0))

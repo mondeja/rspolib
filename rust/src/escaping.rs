@@ -1,13 +1,4 @@
-const CHARACTERS_TO_UNESCAPE: [char; 8] = [
-    '"', '\\', '\t', '\r', '\n', '\u{8}',  // \b
-    '\u{11}', // \v
-    '\u{12}', // \f
-];
-const CHARACTERS_TO_UNESCAPE_NO_DOUBLE_QUOTES: [char; 7] = [
-    '\\', '\t', '\r', '\n', '\u{8}',  // \b
-    '\u{11}', // \v
-    '\u{12}', // \f
-];
+use crate::errors::EscapingError;
 
 /// Escape characters in a PO string field
 pub fn escape(text: &str) -> String {
@@ -21,38 +12,41 @@ pub fn escape(text: &str) -> String {
         .replace('"', r#"\""#)
 }
 
-fn unescape_characters(text: &str, characters: &[char]) -> String {
-    let mut result: Vec<char> = Vec::new();
+struct EscapedStringInterpreter<'a> {
+    s: std::str::Chars<'a>,
+}
 
-    let mut escaping = false;
+impl<'a> Iterator for EscapedStringInterpreter<'a> {
+    type Item = Result<char, EscapingError>;
 
-    for character in text.chars() {
-        if escaping {
-            if !characters.contains(&character) {
-                result.push('\\');
-            }
-            result.push(character);
-            escaping = false;
-        } else if character == '\\' {
-            escaping = true;
-        } else {
-            result.push(character);
-        }
+    fn next(&mut self) -> Option<Self::Item> {
+        self.s.next().map(|c| match c {
+            '\\' => match self.s.next() {
+                None => Err(EscapingError::EscapeAtEndOfString {
+                    text: self.s.as_str().to_string(),
+                }),
+                Some('"') => Ok('"'),
+                Some('n') => Ok('\n'),
+                Some('r') => Ok('\r'),
+                Some('t') => Ok('\t'),
+                Some('b') => Ok('\u{8}'),
+                Some('v') => Ok('\u{11}'),
+                Some('f') => Ok('\u{12}'),
+                Some('\\') => Ok('\\'),
+                Some(c) => {
+                    Err(EscapingError::InvalidEscapedCharacter {
+                        text: self.s.as_str().to_string(),
+                        character: c,
+                    })
+                }
+            },
+            c => Ok(c),
+        })
     }
-    result.iter().collect()
 }
 
-/// Unescape characters in a PO string field
-pub fn unescape(text: &str) -> String {
-    unescape_characters(text, &CHARACTERS_TO_UNESCAPE)
-}
-
-/// Unescape all characters except double quotes in a PO string field
-pub fn unescape_except_double_quotes(text: &str) -> String {
-    unescape_characters(
-        text,
-        &CHARACTERS_TO_UNESCAPE_NO_DOUBLE_QUOTES,
-    )
+pub fn unescape(s: &str) -> Result<String, EscapingError> {
+    (EscapedStringInterpreter { s: s.chars() }).collect()
 }
 
 #[cfg(test)]
@@ -91,7 +85,7 @@ mod tests {
     }
 
     #[test]
-    fn test_unescape() {
+    fn test_unescape() -> Result<(), EscapingError> {
         let escapes_map: HashMap<String, &str> = HashMap::from([
             (r#"\\"#.to_string(), r#"\"#),
             (r#"\\n"#.to_string(), r#"\n"#),
@@ -104,13 +98,17 @@ mod tests {
         ]);
 
         for (value, expected) in escapes_map {
-            assert_eq!(unescape(&value), expected);
+            assert_eq!(unescape(&value)?, expected);
         }
+
+        Ok(())
     }
 
     #[test]
-    fn test_unescape_all() {
+    fn test_unescape_all() -> Result<(), EscapingError> {
         let (expected, escapes) = ESCAPES_EXPECTED;
-        assert_eq!(unescape(escapes), expected);
+        assert_eq!(unescape(escapes)?, expected);
+
+        Ok(())
     }
 }

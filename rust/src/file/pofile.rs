@@ -582,19 +582,6 @@ msgstr \"\"
     }
 
     #[test]
-    fn mofile_from_pofile() {
-        let path = "tests-data/all.po";
-        let po_file = pofile(path).unwrap();
-        let mo_file = MOFile::from(&po_file);
-
-        assert_eq!(
-            mo_file.entries.len(),
-            po_file.translated_entries().len(),
-        );
-        assert_eq!(mo_file.metadata.len(), po_file.metadata.len());
-    }
-
-    #[test]
     fn pofile_percent_translated() {
         let path = "tests-data/2-translated-entries.po";
         let file = pofile(path).unwrap();
@@ -880,5 +867,35 @@ msgstr "oof"
             entries[0].msgctxt.as_ref().unwrap(),
             "msgctxt for msgid_plural 1"
         );
+    }
+
+    #[test]
+    fn parse_escapes_are_unescaped_on_format() {
+        let path = "tests-data/escapes.po";
+        let file = pofile(path).unwrap();
+
+        let expected_content =
+            "\\ \t \r \u{8} \n \\\n \u{11} \u{12} \\\\";
+
+        assert_eq!(file.entries.len(), 1);
+        assert_eq!(file.entries[0].msgid, expected_content);
+        assert_eq!(
+            file.entries[0].msgstr.as_ref().unwrap(),
+            expected_content,
+        );
+    }
+
+    #[test]
+    fn parse_and_format_escapes() {
+        let path = "tests-data/escapes.po";
+        let out_path = "tests-data/tests/parse_and_format_escapes.po";
+
+        let file = pofile(path).unwrap();
+        file.save(out_path);
+
+        let escapes_content = fs::read_to_string(path).unwrap();
+        let out_content = fs::read_to_string(out_path).unwrap();
+
+        assert_eq!(escapes_content, out_content);
     }
 }

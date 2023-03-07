@@ -166,3 +166,21 @@ def test_magic_methods(runner, tests_dir):
         iter__,
         len__,
     )
+
+
+def test_metadata(runner, tests_dir):
+    import rspolib
+    import polib as pypolib
+
+    pypo = pypolib.pofile(f"{tests_dir}/metadata.po")
+    rspo = rspolib.pofile(f"{tests_dir}/metadata.po")
+
+    def pypolib_metadata_get(polib):
+        assert len(pypo.metadata) == 11
+
+    def rspolib_metadata_get(polib):
+        assert len(rspo.metadata) == 11
+
+    runner.run(
+        (pypolib_metadata_get, rspolib_metadata_get),
+    )

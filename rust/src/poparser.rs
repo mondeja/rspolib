@@ -9,7 +9,6 @@ use phf::phf_map;
 
 use crate::entry::POEntry;
 use crate::errors::{MaybeFilename, SyntaxError};
-use crate::escaping::unescape;
 use crate::file::{pofile::POFile, FileOptions};
 
 #[derive(Hash, Eq, PartialEq, Clone, Copy, Debug)]
@@ -45,7 +44,8 @@ static PREV_KEYWORDS: phf::Map<&'static str, &'static St> = phf_map! {
     "msgctxt" => &St::PC,
 };
 
-type TransitionFn = dyn Fn(&mut POFileParser);
+type TransitionFn =
+    dyn Fn(&mut POFileParser) -> Result<(), SyntaxError>;
 type Symbol = St;
 type CurrentSt = St;
 type Action = St;
@@ -111,25 +111,45 @@ impl POFileParser {
         }
     }
 
-    fn maybe_add_current_entry(&mut self) {
-        if [St::MC, St::MS, St::MX].contains(&self.current_state) {
-            let new_entry = self.current_entry.clone();
-            self.file.entries.push(new_entry);
-            self.current_entry = POEntry::new(self.current_line);
-            self.msgstr_index = 0;
+    fn add_current_entry(&mut self) -> Result<(), SyntaxError> {
+        let unescaped_entry = self.current_entry.unescaped();
+        if unescaped_entry.is_err() {
+            return Err(SyntaxError::BasicCustom {
+                maybe_filename: MaybeFilename::new(
+                    &self.file.options.path_or_content,
+                    self.content_is_path,
+                ),
+                message: unescaped_entry.err().unwrap().to_string(),
+            });
         }
+        self.file.entries.push(unescaped_entry.unwrap());
+        self.current_entry = POEntry::new(self.current_line);
+        self.msgstr_index = 0;
+        Ok(())
     }
 
-    fn process(&mut self, symbol: &Symbol) {
+    fn maybe_add_current_entry(&mut self) -> Result<(), SyntaxError> {
+        if [St::MC, St::MS, St::MX].contains(&self.current_state) {
+            self.add_current_entry()?;
+        }
+        Ok(())
+    }
+
+    fn process(
+        &mut self,
+        symbol: &Symbol,
+    ) -> Result<(), SyntaxError> {
         let next_transition = (*symbol, self.current_state);
         let (action, next_state) =
             *self.transitions.get(&next_transition).unwrap();
 
-        (transition_fn_factory(action))(self);
+        (transition_fn_factory(action))(self)?;
         if action != St::MC {
             // if not in a message continuation line, change the state
             self.current_state = next_state;
         }
+
+        Ok(())
     }
 
     pub fn parse(&mut self) -> Result<(), SyntaxError> {
@@ -173,13 +193,11 @@ impl POFileParser {
             // Adding header entry
             if let Some(msgstr) = &self.current_entry.msgstr {
                 if !msgstr.is_empty() {
-                    self.file
-                        .entries
-                        .push(self.current_entry.clone());
+                    self.add_current_entry()?;
                 }
             }
         } else {
-            self.file.entries.push(self.current_entry.clone());
+            self.add_current_entry()?;
         }
 
         let metadata_entry = self.file.find_by_msgid("");
@@ -190,7 +208,7 @@ impl POFileParser {
             self.file.remove(&metadata_entry);
 
             for metadata_line in
-                metadata_entry.msgstr.unwrap().split("\\n")
+                metadata_entry.msgstr.unwrap().split('\n')
             {
                 let (key, value) =
                     match metadata_line.split_once(": ") {
@@ -262,7 +280,7 @@ impl POFileParser {
             )?;
             self.current_token = line.to_string();
             let symbol = *KEYWORDS.get(&tokens[0]).unwrap();
-            self.process(symbol);
+            self.process(symbol)?;
             return Ok(());
         }
 
@@ -272,7 +290,7 @@ impl POFileParser {
                 return Ok(());
             }
             // occurrences
-            self.process(&St::OC);
+            self.process(&St::OC)?;
         } else if line.starts_with('"') {
             // continuation line
             maybe_raise_unescaped_double_quote_found_error(
@@ -282,7 +300,7 @@ impl POFileParser {
                 &self.file.options.path_or_content,
                 1,
             )?;
-            self.process(&St::MC);
+            self.process(&St::MC)?;
         } else if self.current_token.starts_with("msgstr[") {
             // msgstr plural
             let index = self
@@ -317,28 +335,28 @@ impl POFileParser {
                 }
             };
 
-            self.process(&St::MX);
+            self.process(&St::MX)?;
         } else if tokens[0] == "#," {
             if nb_tokens < 2 {
                 return Ok(());
             }
             // flags line
-            self.process(&St::FL);
+            self.process(&St::FL)?;
         } else if tokens[0] == "#" {
             if line == "#" {
                 //line.push(' ');
             }
             // translator comment
-            self.process(&St::TC);
+            self.process(&St::TC)?;
         } else if tokens[0].starts_with("##") {
             // translator comment
-            self.process(&St::TC);
+            self.process(&St::TC)?;
         } else if tokens[0] == "#." {
             if nb_tokens < 2 {
                 return Ok(());
             }
             // generated comment
-            self.process(&St::GC);
+            self.process(&St::GC)?;
         } else if tokens[0] == "#|" {
             if nb_tokens < 2 {
                 return Err(SyntaxError::Custom {
@@ -356,7 +374,7 @@ impl POFileParser {
             // Remove the marker and any whitespace following it
             if tokens[1].starts_with('"') {
                 // Continuation of previous metadata
-                self.process(&St::MC);
+                self.process(&St::MC)?;
                 return Ok(());
             }
 
@@ -392,7 +410,7 @@ impl POFileParser {
                 [tokens[1].len() + tokens[0].len() + 1..]
                 .trim_start()
                 .to_string();
-            self.process(PREV_KEYWORDS.get(&tokens[1]).unwrap())
+            self.process(PREV_KEYWORDS.get(&tokens[1]).unwrap())?;
         } else {
             return Err(SyntaxError::Generic {
                 maybe_filename: MaybeFilename::new(
@@ -407,7 +425,7 @@ impl POFileParser {
     }
 }
 
-fn handle_he(parser: &mut POFileParser) {
+fn handle_he(parser: &mut POFileParser) -> Result<(), SyntaxError> {
     let mut newheader = match parser.file.header {
         Some(ref header) => header,
         None => "",
@@ -420,10 +438,11 @@ fn handle_he(parser: &mut POFileParser) {
         newheader.push_str(&parser.current_token[2..]);
     }
     parser.file.header = Some(newheader);
+    Ok(())
 }
 
-fn handle_tc(parser: &mut POFileParser) {
-    parser.maybe_add_current_entry();
+fn handle_tc(parser: &mut POFileParser) -> Result<(), SyntaxError> {
+    parser.maybe_add_current_entry()?;
     let optional_tcomment = parser.current_entry.tcomment.as_mut();
     let mut tcomment = match optional_tcomment {
         Some(tcomment) => {
@@ -444,10 +463,12 @@ fn handle_tc(parser: &mut POFileParser) {
 
     parser.current_entry.tcomment =
         Some(tcomment.as_str().to_string());
+
+    Ok(())
 }
 
-fn handle_gc(parser: &mut POFileParser) {
-    parser.maybe_add_current_entry();
+fn handle_gc(parser: &mut POFileParser) -> Result<(), SyntaxError> {
+    parser.maybe_add_current_entry()?;
 
     let optional_comment = parser.current_entry.comment.as_mut();
     let mut comment = match optional_comment {
@@ -464,10 +485,13 @@ fn handle_gc(parser: &mut POFileParser) {
         comment.push_str(&parser.current_token[3..]);
     }
     parser.current_entry.comment = Some(comment);
+
+    Ok(())
 }
 
-fn handle_oc(parser: &mut POFileParser) {
-    parser.maybe_add_current_entry();
+fn handle_oc(parser: &mut POFileParser) -> Result<(), SyntaxError> {
+    parser.maybe_add_current_entry()?;
+
     for occ in parser.current_token[3..].split_whitespace() {
         if !occ.is_empty() {
             let (mut fil, mut line) =
@@ -489,10 +513,11 @@ fn handle_oc(parser: &mut POFileParser) {
                 .push((fil.to_string(), line.to_string()))
         }
     }
+    Ok(())
 }
 
-fn handle_fl(parser: &mut POFileParser) {
-    parser.maybe_add_current_entry();
+fn handle_fl(parser: &mut POFileParser) -> Result<(), SyntaxError> {
+    parser.maybe_add_current_entry()?;
     if parser.current_token.len() > 3 {
         let current_token_split =
             parser.current_token[3..].split(',');
@@ -503,62 +528,75 @@ fn handle_fl(parser: &mut POFileParser) {
                 .push(substr.trim().to_string());
         }
     }
+    Ok(())
 }
 
-fn handle_pp(parser: &mut POFileParser) {
-    parser.maybe_add_current_entry();
-    parser.current_entry.previous_msgid_plural = Some(unescape(
-        &parser.current_token[1..parser.current_token.len() - 1],
-    ));
-}
-
-fn handle_pm(parser: &mut POFileParser) {
-    parser.maybe_add_current_entry();
-    parser.current_entry.previous_msgid = Some(unescape(
-        &parser.current_token[1..parser.current_token.len() - 1],
-    ));
-}
-
-fn handle_pc(parser: &mut POFileParser) {
-    parser.maybe_add_current_entry();
-    parser.current_entry.previous_msgctxt = Some(unescape(
-        &parser.current_token[1..parser.current_token.len() - 1],
-    ));
-}
-
-fn handle_ct(parser: &mut POFileParser) {
-    parser.maybe_add_current_entry();
-    parser.current_entry.msgctxt = Some(unescape(
-        &parser.current_token[1..parser.current_token.len() - 1],
-    ));
-}
-
-fn handle_mi(parser: &mut POFileParser) {
-    parser.maybe_add_current_entry();
-    parser.current_entry.obsolete = parser.entry_obsolete;
-    parser.current_entry.msgid = unescape(
-        &parser.current_token[1..parser.current_token.len() - 1],
+fn handle_pp(parser: &mut POFileParser) -> Result<(), SyntaxError> {
+    parser.maybe_add_current_entry()?;
+    parser.current_entry.previous_msgid_plural = Some(
+        parser.current_token[1..parser.current_token.len() - 1]
+            .to_string(),
     );
+    Ok(())
 }
 
-fn handle_mp(parser: &mut POFileParser) {
-    parser.current_entry.msgid_plural = Some(unescape(
-        &parser.current_token[1..parser.current_token.len() - 1],
-    ));
+fn handle_pm(parser: &mut POFileParser) -> Result<(), SyntaxError> {
+    parser.maybe_add_current_entry()?;
+    parser.current_entry.previous_msgid = Some(
+        parser.current_token[1..parser.current_token.len() - 1]
+            .to_string(),
+    );
+    Ok(())
 }
 
-fn handle_ms(parser: &mut POFileParser) {
-    parser.current_entry.msgstr = Some(unescape(
-        &parser.current_token[1..parser.current_token.len() - 1],
-    ));
+fn handle_pc(parser: &mut POFileParser) -> Result<(), SyntaxError> {
+    parser.maybe_add_current_entry()?;
+    parser.current_entry.previous_msgctxt = Some(
+        parser.current_token[1..parser.current_token.len() - 1]
+            .to_string(),
+    );
+    Ok(())
 }
 
-fn handle_mx(parser: &mut POFileParser) {
-    let value = unescape(
+fn handle_ct(parser: &mut POFileParser) -> Result<(), SyntaxError> {
+    parser.maybe_add_current_entry()?;
+    parser.current_entry.msgctxt = Some(
+        parser.current_token[1..parser.current_token.len() - 1]
+            .to_string(),
+    );
+    Ok(())
+}
+
+fn handle_mi(parser: &mut POFileParser) -> Result<(), SyntaxError> {
+    parser.maybe_add_current_entry()?;
+    parser.current_entry.obsolete = parser.entry_obsolete;
+    parser.current_entry.msgid = parser.current_token
+        [1..parser.current_token.len() - 1]
+        .to_string();
+    Ok(())
+}
+
+fn handle_mp(parser: &mut POFileParser) -> Result<(), SyntaxError> {
+    parser.current_entry.msgid_plural = Some(
+        parser.current_token[1..parser.current_token.len() - 1]
+            .to_string(),
+    );
+    Ok(())
+}
+
+fn handle_ms(parser: &mut POFileParser) -> Result<(), SyntaxError> {
+    parser.current_entry.msgstr = Some(
+        parser.current_token[1..parser.current_token.len() - 1]
+            .to_string(),
+    );
+    Ok(())
+}
+
+fn handle_mx(parser: &mut POFileParser) -> Result<(), SyntaxError> {
+    let value =
         &parser.current_token[parser.current_token.find('"').unwrap()
             + 1
-            ..parser.current_token.len() - 1],
-    );
+            ..parser.current_token.len() - 1];
     let msgstr_plural_length =
         parser.current_entry.msgstr_plural.len();
     if parser.msgstr_index + 1 > msgstr_plural_length {
@@ -567,55 +605,72 @@ fn handle_mx(parser: &mut POFileParser) {
         }
     }
 
-    parser.current_entry.msgstr_plural[parser.msgstr_index] = value;
+    parser.current_entry.msgstr_plural[parser.msgstr_index] =
+        value.to_string();
+
+    Ok(())
 }
 
-fn handle_mc(parser: &mut POFileParser) {
-    let token = unescape(
-        &parser.current_token[1..&parser.current_token.len() - 1],
-    );
+fn handle_mc(parser: &mut POFileParser) -> Result<(), SyntaxError> {
+    let token =
+        &parser.current_token[1..&parser.current_token.len() - 1];
 
     if parser.current_state == St::MI {
-        parser.current_entry.msgid.push_str(&token);
+        parser.current_entry.msgid.push_str(token);
     } else if parser.current_state == St::MS {
         let msgstr = parser.current_entry.msgstr.as_mut().unwrap();
-        msgstr.push_str(&token);
+        msgstr.push_str(token);
         parser.current_entry.msgstr = Some(msgstr.to_string());
     } else if parser.current_state == St::CT {
         let msgctxt = parser.current_entry.msgctxt.as_mut().unwrap();
-        msgctxt.push_str(&token);
+        msgctxt.push_str(token);
         parser.current_entry.msgctxt = Some(msgctxt.to_string());
     } else if parser.current_state == St::MP {
         let msgid_plural =
             parser.current_entry.msgid_plural.as_mut().unwrap();
-        msgid_plural.push_str(&token);
+        msgid_plural.push_str(token);
         parser.current_entry.msgid_plural =
             Some(msgid_plural.to_string());
     } else if parser.current_state == St::MX {
         parser.current_entry.msgstr_plural[parser.msgstr_index]
-            .push_str(&token);
+            .push_str(token);
     } else if parser.current_state == St::PP {
         let previous_msgid_plural = parser
             .current_entry
             .previous_msgid_plural
             .as_mut()
             .unwrap();
-        previous_msgid_plural.push_str(&token);
+        previous_msgid_plural.push_str(token);
         parser.current_entry.previous_msgid_plural =
             Some(previous_msgid_plural.to_string());
     } else if parser.current_state == St::PM {
         let previous_msgid =
             parser.current_entry.previous_msgid.as_mut().unwrap();
-        previous_msgid.push_str(&token);
+        previous_msgid.push_str(token);
         parser.current_entry.previous_msgid =
             Some(previous_msgid.to_string());
     } else if parser.current_state == St::PC {
         let previous_msgctxt =
             parser.current_entry.previous_msgctxt.as_mut().unwrap();
-        previous_msgctxt.push_str(&token);
+        previous_msgctxt.push_str(token);
         parser.current_entry.previous_msgctxt =
             Some(previous_msgctxt.to_string());
+    } else {
+        return Err(SyntaxError::Custom {
+            maybe_filename: MaybeFilename::new(
+                &parser.file.options.path_or_content,
+                parser.content_is_path,
+            ),
+            message: format!(
+                "unexpected state {:?}",
+                parser.current_state
+            ),
+            line: parser.current_line,
+            index: 0,
+        });
     }
+
+    Ok(())
 }
 
 fn transition_fn_factory(action: Action) -> &'static TransitionFn {
@@ -942,15 +997,15 @@ mod tests {
 
         // second entry, wrapped at po file
         let expected_msgid_msgstr = concat!(
-            "\\n<p class=\"help\">To install bookmarklets, drag",
-            " the link to your bookmarks\\ntoolbar, or right-click",
-            " the link and add it to your bookmarks. Now you can\\n",
+            "\n<p class=\"help\">To install bookmarklets, drag",
+            " the link to your bookmarks\ntoolbar, or right-click",
+            " the link and add it to your bookmarks. Now you can\n",
             "select the bookmarklet from any page in the site.",
-            "  Note that some of these\\nbookmarklets require you to",
-            " be viewing the site from a computer designated\\n",
+            "  Note that some of these\nbookmarklets require you to",
+            " be viewing the site from a computer designated\n",
             "as \"internal\" (talk to your system administrator",
-            " if you aren't sure if\\nyour computer is \"internal\").",
-            "</p>\\n",
+            " if you aren't sure if\nyour computer is \"internal\").",
+            "</p>\n",
         );
         assert_eq!(second_entry.msgid, expected_msgid_msgstr);
         assert_eq!(

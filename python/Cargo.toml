@@ -1,6 +1,6 @@
 [package]
 name = "py-rspolib"
-version = "0.0.2"
+version = "0.0.3"
 edition = "2021"
 readme = "README.md"
 description = "Python bindings for the Rust crate rspolib."

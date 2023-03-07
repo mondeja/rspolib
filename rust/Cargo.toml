@@ -1,6 +1,6 @@
 [package]
 name = "rspolib"
-version = "0.0.2"
+version = "0.0.3"
 edition = "2021"
 readme = "../README.md"
 description = "PO and MO files manipulation library."
@@ -16,6 +16,7 @@ unicode-width = "0.1.10"
 phf = { version = "0.11.1", features = ["macros"] }
 natord = "1.0.9"
 snafu = "0.7.4"
+regex = "1"
 
 [dev-dependencies]
 rspolib-testing = { path = "./testing" }

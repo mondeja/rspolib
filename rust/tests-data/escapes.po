@@ -1,0 +1,6 @@
+#
+msgid ""
+msgstr ""
+
+msgid "\\ \t \r \b \n \\\n \v \f \\\\"
+msgstr "\\ \t \r \b \n \\\n \v \f \\\\"
