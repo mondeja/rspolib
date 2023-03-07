@@ -896,6 +896,9 @@ msgstr "oof"
         let escapes_content = fs::read_to_string(path).unwrap();
         let out_content = fs::read_to_string(out_path).unwrap();
 
-        assert_eq!(escapes_content, out_content);
+        assert_eq!(
+            escapes_content.replace("\r\n", "\n"),
+            out_content
+        );
     }
 }
