@@ -400,21 +400,23 @@ mod tests {
     }
 
     #[test]
-    fn parse_from_file() {
+    fn parse_from_file() -> Result<(), IOError> {
         let mo_path = "tests-data/all.mo";
         let mut parser = MOFileParser::new(mo_path.into());
-        parser.parse().ok();
+        parser.parse()?;
 
         all_features_test(&parser);
+        Ok(())
     }
 
     #[test]
-    fn parse_from_bytes() {
+    fn parse_from_bytes() -> Result<(), IOError> {
         let bytes = std::fs::read("tests-data/all.mo").ok().unwrap();
         let mut parser = MOFileParser::new(bytes.into());
-        parser.parse().ok();
+        parser.parse()?;
 
         all_features_test(&parser);
+        Ok(())
     }
 
     #[test]
@@ -451,11 +453,26 @@ mod tests {
     }
 
     fn valid_revision_number_test(version: u32, magic_number: u32) {
-        let data: Vec<u32> = vec![magic_number, version];
-        let content = create_binary_content(&data, true);
+        let data: Vec<u32> = vec![
+            magic_number,
+            if magic_number == MAGIC {
+                version
+            } else {
+                //v = 0b00000001_00000000_00000000_00000000;
+                as_u32_be(&as_u8_array_le(version))
+            },
+        ];
+        let content =
+            create_binary_content(&data, magic_number == MAGIC);
 
         let mut parser = MOFileParser::new(content.into());
-        parser.parse().ok();
+        let result = parser.parse();
+        assert_eq!(
+            result,
+            Err(IOError::CorruptedMOData {
+                context: "parsing number of strings".to_string()
+            })
+        )
     }
 
     #[test]

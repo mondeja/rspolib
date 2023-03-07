@@ -35,7 +35,7 @@
 //!
 //! * Unicode Line Breaking formatting support.
 //! * Correct handling of empty and non existent PO fields values.
-//! * More detailed error handling parsing PO and MO files.
+//! * Detailed error handling parsing PO and MO files.
 //! * Custom byte order MO files generation.
 //!
 //! ## General view
@@ -55,10 +55,12 @@
 //!
 //! [polib]: https://github.com/izimobil/polib
 
+#[doc(hidden)]
 pub mod bitwise;
 mod entry;
 pub mod errors;
-mod escaping;
+#[doc(hidden)]
+pub mod escaping;
 mod file;
 mod moparser;
 mod poparser;

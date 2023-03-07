@@ -1,5 +1,3 @@
-//! Bitwise conversions
-
 /// Returns a number as a four bits array in little endian.
 pub fn as_u8_array_le(num: u32) -> [u8; 4] {
     [

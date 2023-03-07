@@ -364,19 +364,23 @@ impl POFile {
 
 impl fmt::Display for POFile {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut ret = match self.header {
+        let mut ret: String = match self.header {
             Some(ref header) => {
-                let mut header_repr = String::new();
-                for line in header.lines() {
-                    if line.is_empty() {
-                        header_repr.push_str("#\n");
-                    } else {
-                        header_repr.push_str("# ");
-                        header_repr.push_str(line);
-                        header_repr.push('\n');
+                if header.is_empty() {
+                    "#\n".to_string()
+                } else {
+                    let mut header_repr = String::new();
+                    for line in header.lines() {
+                        if line.is_empty() {
+                            header_repr.push_str("#\n");
+                        } else {
+                            header_repr.push_str("# ");
+                            header_repr.push_str(line);
+                            header_repr.push('\n');
+                        }
                     }
+                    header_repr
                 }
-                header_repr
             }
             None => "#\n".to_string(),
         };

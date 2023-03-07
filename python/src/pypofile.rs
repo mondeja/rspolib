@@ -169,6 +169,11 @@ impl PyPOFile {
         }
     }
 
+    fn remove(&mut self, entry: &PyPOEntry) -> PyResult<()> {
+        self.0.remove(&entry._inner());
+        Ok(())
+    }
+
     fn percent_translated(&self) -> PyResult<f32> {
         Ok(self.0.percent_translated())
     }
@@ -269,11 +274,11 @@ impl PyPOFile {
     }
 
     fn __eq__(&self, other: &PyPOFile) -> PyResult<bool> {
-        Ok(self.0 == other.0)
+        Ok(self.0.to_string() == other.0.to_string())
     }
 
     fn __ne__(&self, other: &PyPOFile) -> PyResult<bool> {
-        Ok(self.0 != other.0)
+        Ok(self.0.to_string() != other.0.to_string())
     }
 
     fn __iter__(

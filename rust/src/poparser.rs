@@ -293,6 +293,7 @@ impl POFileParser {
                 .split(']')
                 .next()
                 .unwrap();
+
             match index.parse::<usize>() {
                 Ok(index) => {
                     self.msgstr_index = index;
@@ -315,6 +316,7 @@ impl POFileParser {
                     });
                 }
             };
+
             self.process(&St::MX);
         } else if tokens[0] == "#," {
             if nb_tokens < 2 {
@@ -714,29 +716,31 @@ mod tests {
     }
 
     #[test]
-    fn parse_empty_file() {
+    fn parse_empty_file() -> Result<(), SyntaxError> {
         let path = "tests-data/empty.po";
         let mut parser = POFileParser::new(path.into());
-        parser.parse().ok();
+        parser.parse()?;
 
         assert_eq!(parser.file.entries.len(), 0);
         assert_eq!(parser.file.metadata.len(), 0);
+        Ok(())
     }
 
     #[test]
-    fn parse_empty_content() {
+    fn parse_empty_content() -> Result<(), SyntaxError> {
         let mut parser = POFileParser::new("".into());
-        parser.parse().ok();
+        parser.parse()?;
 
         assert_eq!(parser.file.entries.len(), 0);
         assert_eq!(parser.file.metadata.len(), 0);
+        Ok(())
     }
 
     #[test]
-    fn parse_utf8_bom() {
+    fn parse_utf8_bom() -> Result<(), SyntaxError> {
         let path = "tests-data/utf8-bom.po";
         let mut parser = POFileParser::new(path.into());
-        parser.parse().ok();
+        parser.parse()?;
 
         assert_eq!(
             parser.file.header,
@@ -744,13 +748,14 @@ mod tests {
         );
         assert_eq!(parser.file.metadata.len(), 0);
         assert_eq!(parser.file.entries.len(), 0);
+        Ok(())
     }
 
     #[test]
-    fn parse_header() {
+    fn parse_header() -> Result<(), SyntaxError> {
         let path = "tests-data/header-no-trailing-newline.po";
         let mut parser = POFileParser::new(path.into());
-        parser.parse().ok();
+        parser.parse()?;
 
         assert_eq!(
             parser.file.header,
@@ -770,7 +775,7 @@ mod tests {
 
         let path = "tests-data/header-trailing-newlines.po";
         let mut parser = POFileParser::new(path.into());
-        parser.parse().ok();
+        parser.parse()?;
 
         assert_eq!(
             parser.file.header,
@@ -791,13 +796,15 @@ mod tests {
 
         // header must not be saved as entry
         assert_eq!(parser.file.entries.len(), 0);
+
+        Ok(())
     }
 
     #[test]
-    fn parse_metadata() {
+    fn parse_metadata() -> Result<(), SyntaxError> {
         let path = "tests-data/metadata.po";
         let mut parser = POFileParser::new(path.into());
-        parser.parse().ok();
+        parser.parse()?;
 
         assert_eq!(parser.file.metadata.len(), 11);
 
@@ -831,13 +838,15 @@ mod tests {
                 value
             );
         }
+
+        Ok(())
     }
 
     #[test]
-    fn parse_msgids_msgstrs() {
+    fn parse_msgids_msgstrs() -> Result<(), SyntaxError> {
         let path = "tests-data/msgids-msgstrs.po";
         let mut parser = POFileParser::new(path.into());
-        parser.parse().ok();
+        parser.parse()?;
 
         assert_eq!(parser.file.entries.len(), 2);
 
@@ -851,13 +860,14 @@ mod tests {
         assert_eq!(second_entry.msgid, "msgid 2");
         assert_eq!(second_entry.msgstr.as_ref().unwrap(), "msgstr 2");
         assert_eq!(second_entry.obsolete, false);
+        Ok(())
     }
 
     #[test]
-    fn parse_long_message() {
+    fn parse_long_message() -> Result<(), SyntaxError> {
         let path = "tests-data/long-message.po";
         let mut parser = POFileParser::new(path.into());
-        parser.parse().ok();
+        parser.parse()?;
 
         assert_eq!(parser.file.entries.len(), 1);
 
@@ -880,13 +890,15 @@ mod tests {
             entry.comment.as_ref().unwrap(),
             "This is a generated/extracted comment",
         );
+
+        Ok(())
     }
 
     #[test]
-    fn parse_long_msgids_msgstrs() {
+    fn parse_long_msgids_msgstrs() -> Result<(), SyntaxError> {
         let path = "tests-data/msgid-msgstr-long.po";
         let mut parser = POFileParser::new(path.into());
-        parser.parse().ok();
+        parser.parse()?;
 
         let po_content = fs::read_to_string(path).unwrap();
 
@@ -945,13 +957,15 @@ mod tests {
             second_entry.msgstr.as_ref().unwrap(),
             expected_msgid_msgstr
         );
+
+        Ok(())
     }
 
     #[test]
-    fn parse_flags() {
+    fn parse_flags() -> Result<(), SyntaxError> {
         let path = "tests-data/flags.po";
         let mut parser = POFileParser::new(path.into());
-        parser.parse().ok();
+        parser.parse()?;
 
         assert_eq!(parser.file.entries.len(), 6);
 
@@ -1008,13 +1022,15 @@ mod tests {
         assert_eq!(entry_6.obsolete, false);
         assert_eq!(entry_6.flags.len(), 0);
         assert_eq!(entry_6.fuzzy(), false);
+
+        Ok(())
     }
 
     #[test]
-    fn parse_msgid_plural() {
+    fn parse_msgid_plural() -> Result<(), SyntaxError> {
         let path = "tests-data/msgid-plural.po";
         let mut parser = POFileParser::new(path.into());
-        parser.parse().ok();
+        parser.parse()?;
 
         assert_eq!(parser.file.entries.len(), 2);
         assert_eq!(
@@ -1061,13 +1077,15 @@ mod tests {
                 " %(limit_value)d carácter(es) (tiene%(show_value)d).",
             )
         );
+
+        Ok(())
     }
 
     #[test]
-    fn parse_msgctxt() {
+    fn parse_msgctxt() -> Result<(), SyntaxError> {
         let path = "tests-data/msgctxt.po";
         let mut parser = POFileParser::new(path.into());
-        parser.parse().ok();
+        parser.parse()?;
 
         assert_eq!(parser.file.entries.len(), 3);
 
@@ -1098,13 +1116,15 @@ mod tests {
         );
         assert_eq!(entry_3.msgctxt.as_ref().unwrap(), "to date");
         assert_eq!(entry_3.fuzzy(), false);
+
+        Ok(())
     }
 
     #[test]
-    fn parse_previous_msgid_msgctx() {
+    fn parse_previous_msgid_msgctx() -> Result<(), SyntaxError> {
         let path = "tests-data/previous-msgid-msgctxt.po";
         let mut parser = POFileParser::new(path.into());
-        parser.parse().ok();
+        parser.parse()?;
 
         assert_eq!(parser.file.entries.len(), 1);
 
@@ -1117,13 +1137,14 @@ mod tests {
             parser.file.entries[0].previous_msgctxt.as_ref().unwrap(),
             "@previous_context"
         );
+        Ok(())
     }
 
     #[test]
-    fn parse_empty_occurrences_line() {
+    fn parse_empty_occurrences_line() -> Result<(), SyntaxError> {
         let path = "tests-data/empty-occurrences-line.po";
         let mut parser = POFileParser::new(path.into());
-        parser.parse().ok();
+        parser.parse()?;
 
         assert_eq!(parser.file.entries.len(), 1);
 
@@ -1144,14 +1165,16 @@ mod tests {
                 (occ_fline.to_string(), occ_line.to_string())
             );
         }
+
+        Ok(())
     }
 
     #[test]
-    fn parse_occurrence_no_linenum() {
+    fn parse_occurrence_no_linenum() -> Result<(), SyntaxError> {
         // Parse a occurrence line with no line number
         let path = "tests-data/occurrence-no-linenum.po";
         let mut parser = POFileParser::new(path.into());
-        parser.parse().ok();
+        parser.parse()?;
 
         assert_eq!(parser.file.entries.len(), 1);
         assert_eq!(parser.file.entries[0].msgid, "Hello");
@@ -1168,13 +1191,14 @@ mod tests {
             parser.file.entries[0].occurrences[1],
             ("path/to/file/occ.rs".to_string(), "45".to_string())
         );
+        Ok(())
     }
 
     #[test]
-    fn parse_weird_occurrences() {
+    fn parse_weird_occurrences() -> Result<(), SyntaxError> {
         let path = "tests-data/weird-occurrences.po";
         let mut parser = POFileParser::new(path.into());
-        parser.parse().ok();
+        parser.parse()?;
 
         assert_eq!(parser.file.entries.len(), 3);
 
@@ -1197,15 +1221,17 @@ mod tests {
         assert_eq!(entry_3.occurrences, vec![
             ("Balloon-Fills,BitmapFillStyle>>addFillStyleMenuItems:hand:from:".to_string(), "".to_string())
         ]);
+
+        Ok(())
     }
 
     #[test]
-    fn parse_complete() {
+    fn parse_complete() -> Result<(), SyntaxError> {
         let path = "tests-data/django-complete.po";
         let content = fs::read_to_string(path).unwrap();
 
         let mut parser = POFileParser::new(content.as_str().into());
-        parser.parse().ok();
+        parser.parse()?;
 
         assert_eq!(parser.file.entries.len(), 341);
         assert_eq!(parser.file.header.unwrap().lines().count(), 30);
@@ -1277,25 +1303,29 @@ mod tests {
                 .filter(|e| e.flags.contains(&"python-format".into()))
                 .count(),
         );
+
+        Ok(())
     }
 
     #[test]
-    fn parse_fuzzy_header() {
+    fn parse_fuzzy_header() -> Result<(), SyntaxError> {
         let path = "tests-data/fuzzy-header.po";
         let mut parser = POFileParser::new(path.into());
-        parser.parse().ok();
+        parser.parse()?;
 
         let metadata_as_entry = parser.file.metadata_as_entry();
         assert_eq!(parser.file.entries.len(), 0);
         assert_eq!(parser.file.header.unwrap().lines().count(), 2);
         assert_eq!(metadata_as_entry.fuzzy(), true);
+
+        Ok(())
     }
 
     #[test]
-    fn parse_indented() {
+    fn parse_indented() -> Result<(), SyntaxError> {
         let path = "tests-data/indented.po";
         let mut parser = POFileParser::new(path.into());
-        parser.parse().ok();
+        parser.parse()?;
 
         assert_eq!(parser.file.entries.len(), 2);
         assert_eq!(
@@ -1305,13 +1335,25 @@ mod tests {
                 "\nTokens are separated by some tabs and a single space.",
             ),
         );
+
+        Ok(())
     }
 
     #[test]
-    fn parse_repeated_metadata() {
+    fn parse_previous_continuation_line() -> Result<(), SyntaxError> {
+        let path = "tests-data/previous-msgid-continuation.po";
+        let mut parser = POFileParser::new(path.into());
+        parser.parse()?;
+
+        assert_eq!(parser.file.entries.len(), 2);
+        Ok(())
+    }
+
+    #[test]
+    fn parse_repeated_metadata() -> Result<(), SyntaxError> {
         let path = "tests-data/repeated-metadata-keys.po";
         let mut parser = POFileParser::new(path.into());
-        parser.parse().ok();
+        parser.parse()?;
 
         assert!(parser
             .file
@@ -1330,6 +1372,8 @@ mod tests {
             parser.file.metadata.get("MIME-Version").unwrap(),
             "1.02.2",
         );
+
+        Ok(())
     }
 
     #[test]
@@ -1365,10 +1409,10 @@ mod tests {
     }
 
     #[test]
-    fn parse_obsolete_previous_msgid() {
+    fn parse_obsolete_previous_msgid() -> Result<(), SyntaxError> {
         let path = "tests-data/obsolete-previous-msgid.po";
         let mut parser = POFileParser::new(path.into());
-        parser.parse().ok();
+        parser.parse()?;
 
         assert_eq!(parser.file.entries.len(), 2);
 
@@ -1377,6 +1421,7 @@ mod tests {
         assert_eq!(obs_entry.obsolete, true);
         assert!(obs_entry.previous_msgid.is_none());
         assert!(obs_entry.fuzzy());
+        Ok(())
     }
 
     #[test]
@@ -1446,6 +1491,24 @@ mod tests {
                 line: 5,
                 index: 7,
                 message: "Invalid msgstr plural index. Expected digit, found 'foo'.".to_string(),
+            })
+        );
+    }
+
+    #[test]
+    fn error_when_previous_msgid_invalid_continuation_line() {
+        let path =
+            "tests-data/invalid-previous-msgid-continuation.po";
+        let mut parser = POFileParser::new(path.into());
+        let result = parser.parse();
+
+        assert_eq!(
+            result,
+            Err(SyntaxError::Custom {
+                maybe_filename: MaybeFilename::new(path, true),
+                line: 4,
+                index: 0,
+                message: "invalid continuation line".to_string(),
             })
         );
     }

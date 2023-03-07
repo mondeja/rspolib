@@ -185,7 +185,11 @@ impl PyMOFile {
         }
     }
 
-    // For consistency with Python's polib
+    fn remove(&mut self, entry: &PyMOEntry) -> PyResult<()> {
+        self.0.remove(&entry._inner());
+        Ok(())
+    }
+
     fn append(&mut self, entry: &PyMOEntry) -> PyResult<()> {
         self.0.entries.push(entry._inner());
         Ok(())
@@ -225,11 +229,11 @@ impl PyMOFile {
     }
 
     fn __eq__(&self, other: &PyMOFile) -> PyResult<bool> {
-        Ok(self.0 == other.0)
+        Ok(self.0.to_string() == other.0.to_string())
     }
 
     fn __ne__(&self, other: &PyMOFile) -> PyResult<bool> {
-        Ok(self.0 != other.0)
+        Ok(self.0.to_string() != other.0.to_string())
     }
 
     fn __iter__(

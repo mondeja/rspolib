@@ -1,11 +1,13 @@
 use pyo3::prelude::*;
 
+mod escaping;
 mod exceptions;
 mod pymoentry;
 mod pymofile;
 mod pypoentry;
 mod pypofile;
 
+use crate::escaping::{py_escape, py_unescape};
 use crate::pymoentry::PyMOEntry;
 use crate::pymofile::{py_mofile, PyMOFile};
 use crate::pypoentry::PyPOEntry;
@@ -23,6 +25,8 @@ fn py_rspolib(py: Python, m: &PyModule) -> PyResult<()> {
     // Functions
     m.add_function(wrap_pyfunction!(py_pofile, m)?)?;
     m.add_function(wrap_pyfunction!(py_mofile, m)?)?;
+    m.add_function(wrap_pyfunction!(py_escape, m)?)?;
+    m.add_function(wrap_pyfunction!(py_unescape, m)?)?;
 
     // Exceptions
     m.add("IOError", py.get_type::<exceptions::IOError>())?;

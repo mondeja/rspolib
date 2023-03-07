@@ -116,6 +116,36 @@ def test_find_entry(runner, tests_dir):
     )
 
 
+def test_remove_entry(runner, tests_dir):
+    import rspolib
+    import polib as pypolib
+
+    pypo = pypolib.pofile(f"{tests_dir}/django-complete.po")
+    rspo = rspolib.pofile(f"{tests_dir}/django-complete.po")
+    msgid = "This is not a valid IPv6 address."
+
+    def remove_entry(polib):
+        po = pypo if polib.__name__ == "polib" else rspo
+        first_len = len(po)
+        entry = po.find(msgid, by="msgid", include_obsolete_entries=False)
+        if polib.__name__ == "rspolib":
+            entry = entry[0]
+        po.remove(entry)
+        assert len(po) == first_len - 1
+
+        not_entry = po.find(msgid, by="msgid", include_obsolete_entries=False)
+        if polib.__name__ == "rspolib":
+            assert not_entry == []
+        else:
+            assert not_entry is None
+
+        po.append(entry)
+
+    runner.run(
+        remove_entry,
+    )
+
+
 def test_magic_methods(runner, tests_dir):
     def iter__(polib):
         po = polib.pofile(f"{tests_dir}/django-complete.po")

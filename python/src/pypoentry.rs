@@ -15,6 +15,7 @@ impl PyPOEntry {
 
 #[pymethods]
 impl PyPOEntry {
+    #[allow(clippy::too_many_arguments)]
     #[new]
     #[pyo3(
         signature = (
@@ -23,6 +24,9 @@ impl PyPOEntry {
             msgid_plural=None,
             msgstr_plural=vec![] as Vec<String>,
             msgctxt=None,
+            tcomment=None,
+            comment=None,
+            flags=vec![] as Vec<String>,
         )
     )]
     fn new(
@@ -31,6 +35,9 @@ impl PyPOEntry {
         msgid_plural: Option<String>,
         msgstr_plural: Vec<String>,
         msgctxt: Option<String>,
+        tcomment: Option<String>,
+        comment: Option<String>,
+        flags: Vec<String>,
     ) -> Self {
         let mut poentry = POEntry::new(0);
         poentry.msgid = msgid;
@@ -38,6 +45,9 @@ impl PyPOEntry {
         poentry.msgid_plural = msgid_plural;
         poentry.msgstr_plural = msgstr_plural;
         poentry.msgctxt = msgctxt;
+        poentry.tcomment = tcomment;
+        poentry.comment = comment;
+        poentry.flags = flags;
         PyPOEntry(poentry)
     }
 
