@@ -42,9 +42,7 @@ def test_moentry_constructor(runner):
         assert entry.msgctxt == "msgctxt 1"
 
     runner.run(
-        [
-            msgid_msgstr_kwargs,
-            msgid_plural,
-            get_set_all,
-        ]
+        msgid_msgstr_kwargs,
+        msgid_plural,
+        get_set_all,
     )

@@ -4,10 +4,10 @@ import sys
 import polib as pypolib
 import rspolib
 
-REPS = 1000
+REPS = 50
 
 
-def run_polib(cb, impl, polib, reps=REPS):
+def run_cb(cb, impl, polib, reps=REPS):
     start = time.time() * 1000
     for _ in range(reps):
         cb(polib)
@@ -15,34 +15,21 @@ def run_polib(cb, impl, polib, reps=REPS):
     sys.stdout.write(f"{impl} {end - start} ms\n")
 
 
-def run_polibs(*args):
-    opts = {}
-    if len(args) == 1:
-        cb = args[0]
-    elif len(args) == 2:
-        opts, cb = args
-    else:
-        cb = args
-
-    if not isinstance(cb, list):
-        cbs = [cb]
-    else:
-        cbs = cb
-
+def run_polibs(*cbs, run_polib=True, run_rspolib=True, reps=REPS):
     for cb in cbs:
         sys.stdout.write("\n")
         sys.stdout.write(f"{cb.__name__}\n")
-        if opts.get("polib", True):
-            run_polib(
+        if run_polib:
+            run_cb(
                 cb,
                 "    polib",
                 pypolib,
-                reps=opts.get("reps", REPS),
+                reps=reps,
             )
-        if opts.get("rspolib", True):
-            run_polib(
+        if run_rspolib:
+            run_cb(
                 cb,
                 "  rspolib",
                 rspolib,
-                reps=opts.get("reps", REPS),
+                reps=reps,
             )

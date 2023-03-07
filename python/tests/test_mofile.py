@@ -3,10 +3,7 @@ def test_parse(runner, tests_dir):
         polib.mofile(f"{tests_dir}/all.mo")
 
     runner.run(
-        {"reps": 300},
-        [
-            parse_all_features,
-        ],
+        parse_all_features,
     )
 
 
@@ -26,10 +23,7 @@ def test_format(runner, tests_dir):
         )
 
     runner.run(
-        {"reps": 100},
-        [
-            format_as_string,
-        ],
+        format_as_string,
     )
 
 
@@ -44,10 +38,7 @@ def test_edit_save(runner, tests_dir, output_dir):
         mo.save_as_pofile(f"{output_dir}/mofile_edit_save.po")
 
     runner.run(
-        {"reps": 300},
-        [
-            edit_save,
-        ],
+        edit_save,
     )
 
 
@@ -68,9 +59,6 @@ def test_magic_methods(runner, tests_dir):
         assert len(po) > 320
 
     runner.run(
-        {"reps": 50},
-        [
-            iter__,
-            len__,
-        ],
+        iter__,
+        len__,
     )

@@ -3,10 +3,7 @@ def test_parse(runner, tests_dir):
         polib.pofile(f"{tests_dir}/django-complete.po")
 
     runner.run(
-        {"reps": 50},
-        [
-            parse_complete,
-        ],
+        parse_complete,
     )
 
 
@@ -25,10 +22,7 @@ def test_format(runner, tests_dir):
         )
 
     runner.run(
-        {"reps": 70},
-        [
-            format_as_string,
-        ],
+        format_as_string,
     )
 
 
@@ -43,10 +37,7 @@ def test_edit_save(runner, tests_dir, output_dir):
         po.save_as_mofile(f"{output_dir}/pofile_edit_save.mo")
 
     runner.run(
-        {"reps": 50},
-        [
-            edit_save,
-        ],
+        edit_save,
     )
 
 
@@ -75,14 +66,11 @@ def test_methods(runner, tests_dir):
         assert entry.msgid == "msgid 5"
 
     runner.run(
-        {"reps": 1000},
-        [
-            percent_translated,
-            untranslated_entries,
-            translated_entries,
-            fuzzy_entries,
-            find,
-        ],
+        percent_translated,
+        untranslated_entries,
+        translated_entries,
+        fuzzy_entries,
+        find,
     )
 
 
@@ -122,12 +110,9 @@ def test_find_entry(runner, tests_dir):
         assert entry.msgstr_plural[0] == "Por favor, envíe %d formulario o menos."
 
     runner.run(
-        {"reps": 1000},
-        [
-            find_by_msgid,
-            find_by_msgid_msgctxt,
-            find_by_msgid_plural,
-        ],
+        find_by_msgid,
+        find_by_msgid_msgctxt,
+        find_by_msgid_plural,
     )
 
 
@@ -148,9 +133,6 @@ def test_magic_methods(runner, tests_dir):
         assert len(po) > 320
 
     runner.run(
-        {"reps": 50},
-        [
-            iter__,
-            len__,
-        ],
+        iter__,
+        len__,
     )

@@ -111,14 +111,14 @@ impl POEntry {
         // translator comments
         if let Some(tcomment) = &self.tcomment {
             self.format_comment_inplace(
-                tcomment, "#. ", wrapwidth, &mut ret,
+                tcomment, "# ", wrapwidth, &mut ret,
             );
         }
 
         // comments
         if let Some(comment) = &self.comment {
             self.format_comment_inplace(
-                comment, "# ", wrapwidth, &mut ret,
+                comment, "#. ", wrapwidth, &mut ret,
             );
         }
 
@@ -484,16 +484,16 @@ mod tests {
         // comments
         entry.comment = Some("comment".to_string());
         let expected = concat!(
-            "# comment\n#, fuzzy, python-format\n",
+            "#. comment\n#, fuzzy, python-format\n",
             "msgctxt \"msgctxt\"\nmsgid \"msgid\"\n",
             "msgid_plural \"msgid_plural\"\n",
             "msgstr[0] \"plural 1\"\nmsgstr[1] \"plural 2\"\n"
         );
         assert_eq!(entry.to_string(), expected);
 
-        entry.tcomment = Some("extracted_comment".to_string());
+        entry.tcomment = Some("translator comment".to_string());
         let expected = concat!(
-            "#. extracted_comment\n# comment\n",
+            "# translator comment\n#. comment\n",
             "#, fuzzy, python-format\nmsgctxt \"msgctxt\"\n",
             "msgid \"msgid\"\nmsgid_plural \"msgid_plural\"\n",
             "msgstr[0] \"plural 1\"\nmsgstr[1] \"plural 2\"\n"
@@ -503,7 +503,7 @@ mod tests {
         // obsolete
         entry.obsolete = true;
         let expected = concat!(
-            "#. extracted_comment\n# comment\n",
+            "# translator comment\n#. comment\n",
             "#, fuzzy, python-format\n#~ msgctxt \"msgctxt\"\n",
             "#~ msgid \"msgid\"\n",
             "#~ msgid_plural \"msgid_plural\"\n",
@@ -522,7 +522,7 @@ mod tests {
             .occurrences
             .push(("file2.rs".to_string(), "2".to_string()));
         let expected = concat!(
-            "#. extracted_comment\n# comment\n",
+            "# translator comment\n#. comment\n",
             "#, fuzzy, python-format\n",
             "#~ msgctxt \"msgctxt\"\n",
             "#~ msgid \"msgid\"\n",
@@ -534,7 +534,7 @@ mod tests {
 
         entry.obsolete = false;
         let expected = concat!(
-            "#. extracted_comment\n# comment\n",
+            "# translator comment\n#. comment\n",
             "#: file1.rs:1 file2.rs:2\n",
             "#, fuzzy, python-format\n",
             "msgctxt \"msgctxt\"\nmsgid \"msgid\"\n",
@@ -547,10 +547,10 @@ mod tests {
         // Basic complete example
         entry.msgstr = Some("msgstr".to_string());
         entry.comment = Some("comment".to_string());
-        entry.tcomment = Some("extracted_comment".to_string());
+        entry.tcomment = Some("translator comment".to_string());
         entry.flags.push("rspolib".to_string());
         let expected = concat!(
-            "#. extracted_comment\n# comment\n",
+            "# translator comment\n#. comment\n",
             "#: file1.rs:1 file2.rs:2\n",
             "#, fuzzy, python-format, rspolib\n",
             "msgctxt \"msgctxt\"\nmsgid \"msgid\"\n",
@@ -564,7 +564,7 @@ mod tests {
         entry.previous_msgctxt =
             Some("A previous msgctxt".to_string());
         let expected = concat!(
-            "#. extracted_comment\n# comment\n",
+            "# translator comment\n#. comment\n",
             "#: file1.rs:1 file2.rs:2\n",
             "#, fuzzy, python-format, rspolib\n",
             "#| msgctxt \"A previous msgctxt\"\n",
@@ -579,7 +579,7 @@ mod tests {
         // previous msgid
         entry.previous_msgid = Some("A previous msgid".to_string());
         let expected = concat!(
-            "#. extracted_comment\n# comment\n",
+            "# translator comment\n#. comment\n",
             "#: file1.rs:1 file2.rs:2\n",
             "#, fuzzy, python-format, rspolib\n",
             "#| msgctxt \"A previous msgctxt\"\n",

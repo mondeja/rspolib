@@ -753,6 +753,24 @@ msgstr \"\"
     }
 
     #[test]
+    fn format_comment_ordering() {
+        let path = "tests-data/comment-ordering.po";
+
+        let file = pofile(path).unwrap();
+        let expected_content = r#"#
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+
+# First comment line
+#. Second comment line
+msgid "foo"
+msgstr "oof"
+"#;
+        assert_eq!(file.to_string(), expected_content);
+    }
+
+    #[test]
     fn remove() {
         let mut entry_1 = POEntry::from("msgid 1");
         entry_1.msgstr = Some("msgstr 1".to_string());
