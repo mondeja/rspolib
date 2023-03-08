@@ -5,6 +5,7 @@ use pyo3::prelude::*;
 use rspolib::prelude::*;
 use rspolib::{EntryCmpByOptions, MOEntry};
 
+#[derive(Clone)]
 #[pyclass]
 #[pyo3(name = "MOEntry")]
 pub struct PyMOEntry(MOEntry);
@@ -219,5 +220,13 @@ impl PyMOEntry {
 impl From<&MOEntry> for PyMOEntry {
     fn from(entry: &MOEntry) -> Self {
         PyMOEntry(entry.clone())
+    }
+}
+
+impl From<PyObject> for PyMOEntry {
+    fn from(obj: PyObject) -> Self {
+        Python::with_gil(move |py| {
+            obj.extract::<PyMOEntry>(py).unwrap()
+        })
     }
 }

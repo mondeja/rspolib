@@ -48,6 +48,22 @@ pub struct PyMOFile(MOFile);
 
 #[pymethods]
 impl PyMOFile {
+    #[new]
+    #[pyo3(signature = (path_or_content="", wrapwidth=78))]
+    fn new(
+        path_or_content: &str,
+        wrapwidth: usize,
+    ) -> PyResult<Self> {
+        let result =
+            mofile(FileOptions::from((path_or_content, wrapwidth)));
+        match result {
+            Ok(mofile) => Ok(PyMOFile(mofile)),
+            Err(e) => Err(PyErr::new::<exceptions::IOError, _>(
+                e.to_string(),
+            )),
+        }
+    }
+
     #[allow(non_snake_case)]
     #[classattr]
     fn MAGIC() -> PyResult<u32> {
@@ -87,6 +103,15 @@ impl PyMOFile {
             entries.push(PyMOEntry::from(entry));
         }
         Ok(entries)
+    }
+
+    #[setter]
+    fn set_entries(&mut self, entries: Vec<PyMOEntry>) {
+        let mut new_entries = Vec::new();
+        for entry in entries {
+            new_entries.push(entry._inner());
+        }
+        self.0.entries = new_entries;
     }
 
     #[getter]

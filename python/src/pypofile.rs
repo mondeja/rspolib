@@ -48,6 +48,22 @@ pub struct PyPOFile(POFile);
 
 #[pymethods]
 impl PyPOFile {
+    #[new]
+    #[pyo3(signature = (path_or_content="", wrapwidth=78))]
+    fn new(
+        path_or_content: &str,
+        wrapwidth: usize,
+    ) -> PyResult<Self> {
+        let result =
+            pofile(FileOptions::from((path_or_content, wrapwidth)));
+        match result {
+            Ok(pofile) => Ok(PyPOFile(pofile)),
+            Err(e) => Err(PyErr::new::<exceptions::SyntaxError, _>(
+                e.to_string(),
+            )),
+        }
+    }
+
     #[getter]
     fn entries(&self) -> PyResult<Vec<PyPOEntry>> {
         let mut entries = Vec::new();
@@ -57,9 +73,20 @@ impl PyPOFile {
         Ok(entries)
     }
 
+    #[setter]
+    fn set_entries(&mut self, entries: Vec<PyPOEntry>) {
+        self.0.entries =
+            entries.into_iter().map(|e| e._inner()).collect();
+    }
+
     #[getter]
     fn header(&self) -> PyResult<String> {
         Ok(self.0.header.clone().unwrap_or("".to_string()))
+    }
+
+    #[setter]
+    fn set_header(&mut self, header: Option<String>) {
+        self.0.header = header;
     }
 
     #[getter]

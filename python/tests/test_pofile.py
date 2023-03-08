@@ -41,6 +41,31 @@ def test_edit_save(runner, tests_dir, output_dir):
     )
 
 
+def test_setters(runner):
+    import rspolib
+    import polib as pypolib
+
+    pypo = pypolib.POFile()
+    rspo = rspolib.POFile()
+
+    def set_entries(polib):
+        entry1 = polib.POEntry(msgid="test1", msgstr="test1")
+        entry2 = polib.POEntry(msgid="test2", msgstr="test2")
+        entry3 = polib.POEntry(msgid="test3", msgstr="test3")
+        entry4 = polib.POEntry(msgid="test4", msgstr="test4")
+
+        po = pypo if polib.__name__ == "polib" else rspo
+        po.entries = [entry1, entry2, entry3, entry4]
+        assert len(po.entries) == 4
+
+        po.entries = []
+        assert len(po) == 0
+
+    runner.run(
+        set_entries,
+    )
+
+
 def test_methods(runner, tests_dir):
     def percent_translated(polib):
         po = polib.pofile(f"{tests_dir}/2-translated-entries.po")

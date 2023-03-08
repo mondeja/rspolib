@@ -145,7 +145,9 @@ impl POEntry {
             let mut current_width = 2;
             for occ in &whitespace_sep_occurrences {
                 let occ_width = UnicodeWidthStr::width(occ.as_str());
-                if current_width + occ_width + 1 > wrapwidth {
+                let width = current_width + occ_width + 1;
+                if width > wrapwidth && !current_line_occs.is_empty()
+                {
                     let curr_line =
                         format!("#: {}", current_line_occs.join(" "));
                     files_repr.push(curr_line);

@@ -5,6 +5,7 @@ use pyo3::prelude::*;
 use rspolib::prelude::*;
 use rspolib::{EntryCmpByOptions, POEntry};
 
+#[derive(Clone)]
 #[pyclass]
 #[pyo3(name = "POEntry")]
 pub struct PyPOEntry(POEntry);
@@ -358,5 +359,13 @@ impl PyPOEntry {
 impl From<&POEntry> for PyPOEntry {
     fn from(entry: &POEntry) -> Self {
         PyPOEntry(entry.clone())
+    }
+}
+
+impl From<PyObject> for PyPOEntry {
+    fn from(obj: PyObject) -> Self {
+        Python::with_gil(move |py| {
+            obj.extract::<PyPOEntry>(py).unwrap()
+        })
     }
 }
