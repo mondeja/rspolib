@@ -46,9 +46,9 @@ pub(crate) fn maybe_msgid_msgctxt_eot_split<'a>(
         ret.reserve(msgid.len() + 1);
         ret.push('\u{4}');
         ret.push_str(msgid);
-        Cow::Owned(ret)
+        ret.into()
     } else {
-        Cow::Borrowed(msgid)
+        msgid.into()
     }
 }
 
@@ -181,14 +181,12 @@ pub(crate) fn mo_entry_to_string(
 /// assert!(entry_str.starts_with("msgid \"\"\nmsgstr \"\""));
 /// ```
 pub fn mo_metadata_entry_to_string(entry: &MOEntry) -> String {
-    let mut ret = String::new();
-    ret.push_str(&mo_entry_to_string_with_msgstr_formatter(
+    mo_entry_to_string_with_msgstr_formatter(
         entry,
         78,
         "",
         &metadata_msgstr_formatter,
-    ));
-    ret
+    )
 }
 
 /// Converts a metadata wrapped by a [POEntry] to a string

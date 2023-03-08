@@ -1,6 +1,7 @@
 pub mod mofile;
 pub mod pofile;
 
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fmt;
 use std::fs::File;
@@ -55,11 +56,11 @@ pub trait SaveAsMOFile {
 ///   big endian byte order.
 pub trait AsBytes {
     /// Return the content as bytes
-    fn as_bytes(&self) -> Vec<u8>;
+    fn as_bytes(&self) -> Cow<[u8]>;
     /// Return the content as bytes in little endian
-    fn as_bytes_le(&self) -> Vec<u8>;
+    fn as_bytes_le(&self) -> Cow<[u8]>;
     /// Return the content as bytes in big endian
-    fn as_bytes_be(&self) -> Vec<u8>;
+    fn as_bytes_be(&self) -> Cow<[u8]>;
 }
 
 /// File options struct passed when creating a new PO or MO file
@@ -147,15 +148,18 @@ impl From<(Vec<u8>, usize)> for FileOptions {
 fn metadata_hashmap_to_msgstr(
     metadata: &HashMap<String, String>,
 ) -> String {
-    let mut msgstr = String::new();
+    let ordered_map = metadata_hashmap_to_ordered(metadata);
+    let mut parts: Vec<String> =
+        Vec::with_capacity(ordered_map.len());
     for (key, value) in metadata_hashmap_to_ordered(metadata) {
+        let mut msgstr =
+            String::with_capacity(key.len() + value.len() + 2);
         msgstr.push_str(&key);
         msgstr.push_str(": ");
         msgstr.push_str(&value);
-        msgstr.push('\n');
+        parts.push(msgstr);
     }
-    msgstr.pop();
-    msgstr
+    parts.join("\n")
 }
 
 fn metadata_hashmap_to_ordered(

@@ -158,19 +158,22 @@ impl PyMOFile {
         magic_number: u32,
         revision_number: u32,
     ) -> PyResult<Vec<u8>> {
-        Ok(self.0.as_bytes_with(magic_number, revision_number))
+        Ok(self
+            .0
+            .as_bytes_with(magic_number, revision_number)
+            .to_vec())
     }
 
     fn as_bytes(&self) -> PyResult<Vec<u8>> {
-        Ok(self.0.as_bytes())
+        Ok(self.0.as_bytes().to_vec())
     }
 
     fn as_bytes_le(&self) -> PyResult<Vec<u8>> {
-        Ok(self.0.as_bytes_le())
+        Ok(self.0.as_bytes_le().to_vec())
     }
 
     fn as_bytes_be(&self) -> PyResult<Vec<u8>> {
-        Ok(self.0.as_bytes_be())
+        Ok(self.0.as_bytes_be().to_vec())
     }
 
     fn remove_by_msgid(&mut self, msgid: &str) -> PyResult<()> {

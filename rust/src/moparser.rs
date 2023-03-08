@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::fs::File;
 use std::io::{Cursor, SeekFrom};
 use std::path::Path;
@@ -28,40 +29,33 @@ pub const MAGIC_SWAPPED: u32 = 0xde120495;
 
 type MsgsIndex = Vec<(u32, u32)>;
 
-fn maybe_extract_plurals_from_msgid_msgstr(
-    msgid: &str,
+fn maybe_extract_plurals_from_msgid_msgstr<'a>(
+    msgid: &'a str,
     msgstr: &str,
-) -> (String, Option<String>, Vec<String>) {
+) -> (Cow<'a, str>, Option<String>, Vec<String>) {
     if !msgid.contains('\u{0}') {
-        return (msgid.to_string(), None, vec![]);
+        return (msgid.into(), None, vec![]);
     }
     let msgid_tokens = msgid.split('\u{0}').collect::<Vec<&str>>();
 
     let (msgid, msgid_plural) = (msgid_tokens[0], msgid_tokens[1]);
     let msgstr_plural = msgstr
         .split('\u{0}')
-        .map(|s| s.to_string())
+        .map(|s| s.into())
         .collect::<Vec<String>>();
 
-    (
-        msgid.to_string(),
-        Some(msgid_plural.to_string()),
-        msgstr_plural,
-    )
+    (msgid.into(), Some(msgid_plural.into()), msgstr_plural)
 }
 
 fn maybe_extract_msgctxt_from_msgid(
     msgid: &str,
-) -> (String, Option<String>) {
+) -> (Cow<'_, str>, Option<String>) {
     let msgid_tokens = msgid.split('\x04').collect::<Vec<&str>>();
 
     if msgid_tokens.len() == 2 {
-        (
-            msgid_tokens[0].to_string(),
-            Some(msgid_tokens[1].to_string()),
-        )
+        (msgid_tokens[0].into(), Some(msgid_tokens[1].to_string()))
     } else {
-        (msgid_tokens[0].to_string(), None)
+        (msgid_tokens[0].into(), None)
     }
 }
 
@@ -310,17 +304,16 @@ impl MOFileParser<'_> {
             }
 
             // check if we have a plural entry
-            let (mut msgid, msgid_plural, msgstr_plural) =
+            let (msgid, msgid_plural, msgstr_plural) =
                 maybe_extract_plurals_from_msgid_msgstr(
                     &msgid, &msgstr,
                 );
             let msgctxt_tokens =
                 maybe_extract_msgctxt_from_msgid(&msgid);
-            msgid = msgctxt_tokens.0;
             let msgctxt = msgctxt_tokens.1;
 
             let entry = MOEntry::new(
-                msgid,
+                msgctxt_tokens.0.to_string(),
                 Some(msgstr.into_owned()),
                 msgid_plural,
                 msgstr_plural,

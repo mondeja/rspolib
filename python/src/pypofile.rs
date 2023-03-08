@@ -247,19 +247,20 @@ impl PyPOFile {
         revision_number: u32,
     ) -> PyResult<Vec<u8>> {
         Ok(MOFile::from(&self.0)
-            .as_bytes_with(magic_number, revision_number))
+            .as_bytes_with(magic_number, revision_number)
+            .into())
     }
 
     fn as_bytes(&self) -> PyResult<Vec<u8>> {
-        Ok(MOFile::from(&self.0).as_bytes())
+        Ok(MOFile::from(&self.0).as_bytes().into())
     }
 
     fn as_bytes_le(&self) -> PyResult<Vec<u8>> {
-        Ok(MOFile::from(&self.0).as_bytes_le())
+        Ok(MOFile::from(&self.0).as_bytes_le().into())
     }
 
     fn as_bytes_be(&self) -> PyResult<Vec<u8>> {
-        Ok(MOFile::from(&self.0).as_bytes_be())
+        Ok(MOFile::from(&self.0).as_bytes_be().into())
     }
 
     fn append(&mut self, entry: &PyPOEntry) -> PyResult<()> {

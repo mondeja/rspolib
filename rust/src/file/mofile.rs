@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fmt;
 use std::fs::File;
@@ -218,7 +219,7 @@ impl MOFile {
         &self,
         magic_number: u32,
         revision_number: u32,
-    ) -> Vec<u8> {
+    ) -> Cow<[u8]> {
         let metadata_entry = self.metadata_as_entry();
 
         // Select byte order based on magic number
@@ -308,7 +309,9 @@ impl MOFile {
             final_offsets.extend(bytes_reader(o as u32));
         }
 
-        let mut output: Vec<u8> = vec![];
+        let mut output: Vec<u8> = Vec::with_capacity(
+            7 * 4 + 8 * entries_length + ids.len() + strs.len(),
+        );
         // magic number
         output.extend(bytes_reader(MAGIC));
         // version
@@ -328,7 +331,7 @@ impl MOFile {
         output.extend(final_offsets);
         output.extend(ids.as_bytes());
         output.extend(strs.as_bytes());
-        output
+        output.into()
     }
 }
 
@@ -356,7 +359,7 @@ impl Save for MOFile {
     /// Save the MOFile to a file at the given path
     fn save(&self, path: &str) {
         let mut file = File::create(path).unwrap();
-        file.write_all(self.as_bytes().as_slice()).ok();
+        file.write_all(&self.as_bytes()).ok();
     }
 }
 
@@ -369,17 +372,17 @@ impl SaveAsMOFile for MOFile {
 
 impl AsBytes for MOFile {
     /// Return the MOFile as a vector of bytes in little endian
-    fn as_bytes(&self) -> Vec<u8> {
+    fn as_bytes(&self) -> Cow<[u8]> {
         self.as_bytes_with(MAGIC, 0)
     }
 
     /// Return the MOFile as a vector of bytes in little endian
-    fn as_bytes_le(&self) -> Vec<u8> {
+    fn as_bytes_le(&self) -> Cow<[u8]> {
         self.as_bytes_with(MAGIC, 0)
     }
 
     /// Return the MOFile as a vector of bytes in big endian
-    fn as_bytes_be(&self) -> Vec<u8> {
+    fn as_bytes_be(&self) -> Cow<[u8]> {
         self.as_bytes_with(MAGIC_SWAPPED, 0)
     }
 }
@@ -544,7 +547,7 @@ mod tests {
 
         let file_bytes = match read_bytes_from_file {
             true => fs::read(tmp_path_str).unwrap(),
-            false => file.as_bytes(),
+            false => file.as_bytes().into_owned(),
         };
         let mut file_bytes = file_bytes.as_slice();
         let mut buf: [u8; 4] = [0, 0, 0, 0];
