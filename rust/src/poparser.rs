@@ -718,6 +718,21 @@ fn maybe_raise_unescaped_double_quote_found_error(
     path_or_content: &str,
     index_offset: usize,
 ) -> Result<(), SyntaxError> {
+    // Check if last character is not a double quote
+    // to prevent slicing out of bounds
+    let text_chars = text.chars();
+    if text_chars.last().unwrap_or('\0') != '"' {
+        return Err(SyntaxError::Custom {
+            maybe_filename: MaybeFilename::new(
+                path_or_content,
+                path_or_content_is_path,
+            ),
+            line: linenum,
+            index: text.chars().count() - 1,
+            message: format!("unterminated string '{}'", text),
+        });
+    }
+
     let text_str = text.to_string();
     let unescaped_double_quote_i = find_unescaped_double_quote_index(
         &text_str[1..text_str.len() - 1],
@@ -1566,5 +1581,22 @@ mod tests {
                 message: "invalid continuation line".to_string(),
             })
         );
+    }
+
+    #[test]
+    fn error_when_unclosed_string_delimiter() {
+        let path = "tests-data/unclosed-string-delimiter.po";
+        let mut parser = POFileParser::new(path.into());
+        let result = parser.parse();
+        assert_eq!(
+            result,
+            Err(SyntaxError::Custom {
+                maybe_filename: MaybeFilename::new(path, true),
+                line: 5,
+                index: 12,
+                message: "unterminated string '\"Foo bar bazá'"
+                    .to_string(),
+            })
+        )
     }
 }

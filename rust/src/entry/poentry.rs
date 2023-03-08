@@ -393,6 +393,7 @@ impl POEntry {
 impl MsgidEotMsgctxt for POEntry {
     fn msgid_eot_msgctxt(&self) -> String {
         maybe_msgid_msgctxt_eot_split(&self.msgid, &self.msgctxt)
+            .to_string()
     }
 }
 

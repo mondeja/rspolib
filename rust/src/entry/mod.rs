@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::fmt;
 
 use unicode_width::UnicodeWidthStr;
@@ -36,17 +37,18 @@ pub trait MsgidEotMsgctxt {
     fn msgid_eot_msgctxt(&self) -> String;
 }
 
-pub(crate) fn maybe_msgid_msgctxt_eot_split(
-    msgid: &str,
+pub(crate) fn maybe_msgid_msgctxt_eot_split<'a>(
+    msgid: &'a str,
     msgctxt: &Option<String>,
-) -> String {
+) -> Cow<'a, str> {
     if let Some(ctx) = msgctxt {
         let mut ret = String::from(ctx);
+        ret.reserve(msgid.len() + 1);
         ret.push('\u{4}');
         ret.push_str(msgid);
-        ret
+        Cow::Owned(ret)
     } else {
-        msgid.to_string()
+        Cow::Borrowed(msgid)
     }
 }
 
