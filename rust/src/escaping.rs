@@ -1,15 +1,23 @@
 use crate::errors::EscapingError;
+use std::borrow::Cow;
 
 /// Escape characters in a PO string field
-pub fn escape(text: &str) -> String {
-    text.replace('\\', r#"\\"#)
-        .replace('\t', r"\t")
-        .replace('\n', r#"\n"#)
-        .replace('\r', r#"\r"#)
-        .replace('\u{11}', r#"\v"#)
-        .replace('\u{8}', r#"\b"#)
-        .replace('\u{12}', r#"\f"#)
-        .replace('"', r#"\""#)
+pub fn escape(text: &str) -> Cow<'_, str> {
+    let mut ret: String = String::with_capacity(text.len());
+    for char in text.chars() {
+        match char {
+            '"' => ret.push_str(r#"\""#),
+            '\n' => ret.push_str(r#"\n"#),
+            '\r' => ret.push_str(r#"\r"#),
+            '\t' => ret.push_str(r#"\t"#),
+            '\u{11}' => ret.push_str(r#"\v"#),
+            '\u{8}' => ret.push_str(r#"\b"#),
+            '\u{12}' => ret.push_str(r#"\f"#),
+            '\\' => ret.push_str(r#"\\"#),
+            c => ret.push(c),
+        }
+    }
+    ret.into()
 }
 
 struct EscapedStringInterpreter<'a> {
@@ -45,8 +53,12 @@ impl<'a> Iterator for EscapedStringInterpreter<'a> {
     }
 }
 
-pub fn unescape(s: &str) -> Result<String, EscapingError> {
-    (EscapedStringInterpreter { s: s.chars() }).collect()
+pub fn unescape(s: &str) -> Result<Cow<'_, str>, EscapingError> {
+    if s.contains('\\') {
+        (EscapedStringInterpreter { s: s.chars() }).collect()
+    } else {
+        Ok(s.into())
+    }
 }
 
 #[cfg(test)]

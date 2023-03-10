@@ -5,7 +5,7 @@ use rspolib::escaping::{escape, unescape};
 #[pyfunction]
 #[pyo3(name = "escape")]
 pub fn py_escape(text: &str) -> PyResult<String> {
-    Ok(escape(text))
+    Ok(escape(text).to_string())
 }
 
 #[pyfunction]
@@ -13,7 +13,7 @@ pub fn py_escape(text: &str) -> PyResult<String> {
 pub fn py_unescape(text: &str) -> PyResult<String> {
     let ret = unescape(text);
     match ret {
-        Ok(ret) => Ok(ret),
+        Ok(ret) => Ok(ret.to_string()),
         Err(e) => Err(PyErr::new::<exceptions::EscapingError, _>(
             e.to_string(),
         )),

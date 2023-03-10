@@ -233,38 +233,40 @@ impl POEntry {
 
     pub fn unescaped(&self) -> Result<Self, EscapingError> {
         let mut entry = self.clone();
-        entry.msgid = unescape(&self.msgid)?;
+        entry.msgid = unescape(&self.msgid)?.to_string();
 
         if let Some(msgstr) = &self.msgstr {
-            entry.msgstr = Some(unescape(msgstr)?);
+            entry.msgstr = Some(unescape(msgstr)?.to_string());
         }
 
         if let Some(msgid_plural) = &self.msgid_plural {
-            entry.msgid_plural = Some(unescape(msgid_plural)?);
+            entry.msgid_plural =
+                Some(unescape(msgid_plural)?.to_string());
         }
 
         for msgstr_plural in &mut entry.msgstr_plural {
-            *msgstr_plural = unescape(msgstr_plural)?;
+            *msgstr_plural = unescape(msgstr_plural)?.to_string();
         }
 
         if let Some(msgctxt) = &self.msgctxt {
-            entry.msgctxt = Some(unescape(msgctxt)?);
+            entry.msgctxt = Some(unescape(msgctxt)?.to_string());
         }
 
         if let Some(previous_msgid) = &self.previous_msgid {
-            entry.previous_msgid = Some(unescape(previous_msgid)?);
+            entry.previous_msgid =
+                Some(unescape(previous_msgid)?.to_string());
         }
 
         if let Some(previous_msgid_plural) =
             &self.previous_msgid_plural
         {
             entry.previous_msgid_plural =
-                Some(unescape(previous_msgid_plural)?);
+                Some(unescape(previous_msgid_plural)?.to_string());
         }
 
         if let Some(previous_msgctxt) = &self.previous_msgctxt {
             entry.previous_msgctxt =
-                Some(unescape(previous_msgctxt)?);
+                Some(unescape(previous_msgctxt)?.to_string());
         }
 
         Ok(entry)

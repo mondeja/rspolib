@@ -256,14 +256,14 @@ impl<'a> fmt::Display for POStringField<'a> {
 
         // +1 here because of the space between fieldname and value
         let real_width =
-            UnicodeWidthStr::width(escaped_value.as_str())
+            UnicodeWidthStr::width(escaped_value.as_ref())
                 + UnicodeWidthStr::width(self.fieldname)
                 + 1;
         if real_width > self.wrapwidth {
             let new_lines = wrap(&escaped_value, self.wrapwidth);
             lines.extend(new_lines);
         } else {
-            lines = vec![escaped_value];
+            lines = vec![escaped_value.into_owned()];
         }
 
         // format first line
