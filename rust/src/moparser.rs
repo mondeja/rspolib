@@ -3,7 +3,6 @@ use std::fs::File;
 use std::io::{Cursor, SeekFrom};
 use std::path::Path;
 
-use crate::bitwise::{as_u32_be, as_u32_le, as_u8_array_le};
 use crate::entry::MOEntry;
 use crate::errors::IOError;
 use crate::file::{mofile::MOFile, FileOptions};
@@ -61,7 +60,7 @@ fn maybe_extract_msgctxt_from_msgid(
 
 pub(crate) struct MOFileParser<'a> {
     fhandle: Box<dyn SeekRead + 'a>,
-    freader: &'a dyn Fn(&[u8; 4]) -> u32,
+    freader: &'a dyn Fn([u8; 4]) -> u32,
 
     pub file: MOFile,
 }
@@ -84,7 +83,7 @@ impl MOFileParser<'_> {
 
         MOFileParser {
             fhandle,
-            freader: &as_u32_le,
+            freader: &u32::from_le_bytes,
             file,
         }
     }
@@ -122,20 +121,20 @@ impl MOFileParser<'_> {
     fn parse_4_bytes(&mut self) -> Result<u32, std::io::Error> {
         let mut buffer = [0; 4];
         self.fhandle.read_exact(&mut buffer)?;
-        Ok((self.freader)(&buffer))
+        Ok((self.freader)(buffer))
     }
 
     fn parse_magic_number(&mut self) -> Result<(), IOError> {
         match self.parse_4_bytes() {
             Ok(magic_number) => {
                 if magic_number == MAGIC_SWAPPED {
-                    self.freader = &as_u32_be;
+                    self.freader = &u32::from_be_bytes;
                 } else if magic_number != MAGIC {
                     return Err(IOError::IncorrectMagicNumber {
                         magic_number_le: magic_number,
-                        magic_number_be: as_u32_be(&as_u8_array_le(
-                            magic_number,
-                        )),
+                        magic_number_be: u32::from_be_bytes(
+                            u32::to_le_bytes(magic_number),
+                        ),
                     });
                 }
                 self.file.magic_number = Some(magic_number);
@@ -452,7 +451,7 @@ mod tests {
                 version
             } else {
                 //v = 0b00000001_00000000_00000000_00000000;
-                as_u32_be(&as_u8_array_le(version))
+                u32::from_be_bytes(u32::to_le_bytes(version))
             },
         ];
         let content =

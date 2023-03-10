@@ -4,7 +4,6 @@ use std::fmt;
 use std::fs::File;
 use std::io::Write;
 
-use crate::bitwise::{as_u8_array_be, as_u8_array_le};
 use crate::entry::{
     mo_metadata_entry_to_string, MOEntry, MsgidEotMsgctxt,
 };
@@ -224,8 +223,8 @@ impl MOFile {
 
         // Select byte order based on magic number
         let bytes_reader: fn(u32) -> [u8; 4] = match magic_number {
-            MAGIC_SWAPPED => as_u8_array_be,
-            _ => as_u8_array_le,
+            MAGIC_SWAPPED => u32::to_be_bytes,
+            _ => u32::to_le_bytes,
         };
 
         let mut entries: Vec<&MOEntry> = vec![&metadata_entry];
@@ -413,7 +412,6 @@ impl From<Vec<&MOEntry>> for MOFile {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bitwise::as_u32_le;
     use crate::pofile;
     use std::fs;
     use std::io::Read;
@@ -554,17 +552,17 @@ mod tests {
 
         // has correct magic number
         file_bytes.read_exact(&mut buf).unwrap();
-        let magic_number = as_u32_le(&buf);
+        let magic_number = u32::from_le_bytes(buf);
         assert_eq!(magic_number, MAGIC);
 
         // has correct revision number
         file_bytes.read_exact(&mut buf).unwrap();
-        let revision_number = as_u32_le(&buf);
+        let revision_number = u32::from_le_bytes(buf);
         assert_eq!(revision_number, 0);
 
         // has correct number of entries
         file_bytes.read_exact(&mut buf).unwrap();
-        let number_of_entries = as_u32_le(&buf);
+        let number_of_entries = u32::from_le_bytes(buf);
         assert_eq!(
             number_of_entries,
             // +1 here because includes the header entry

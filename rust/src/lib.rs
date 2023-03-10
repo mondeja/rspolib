@@ -55,8 +55,6 @@
 //!
 //! [polib]: https://github.com/izimobil/polib
 
-#[doc(hidden)]
-pub mod bitwise;
 mod entry;
 pub mod errors;
 #[doc(hidden)]

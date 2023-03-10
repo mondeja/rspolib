@@ -1,12 +1,10 @@
 // Utilities used in tests and examples
 
-use rspolib::bitwise::{as_u8_array_be, as_u8_array_le};
-
 pub fn create_binary_content(data: &Vec<u32>, le: bool) -> Vec<u8> {
     let mut buf: Vec<u8> = vec![];
     let bytes_reader = match le {
-        true => as_u8_array_le,
-        false => as_u8_array_be,
+        true => u32::to_le_bytes,
+        false => u32::to_be_bytes,
     };
     for d in data {
         buf.extend(bytes_reader(*d));

@@ -21,7 +21,7 @@ for entry in po.entries {
     println!("{}", entry.msgid);
 }
 
-po.save("path/to/other/file.po").unwrap();
+po.save("path/to/other/file.po");
 ```
 
 [polib]: https://github.com/izimobil/polib
