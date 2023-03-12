@@ -488,7 +488,7 @@ mod tests {
     use crate::pofile;
 
     #[test]
-    fn poentry_constructor() {
+    fn constructor() {
         let poentry = POEntry::new(7);
 
         assert_eq!(poentry.linenum, 7);
@@ -500,7 +500,7 @@ mod tests {
     }
 
     #[test]
-    fn poentry_fuzzy() {
+    fn fuzzy() {
         let non_fuzzy_entry = POEntry::new(0);
         assert_eq!(non_fuzzy_entry.fuzzy(), false);
 
@@ -510,7 +510,7 @@ mod tests {
     }
 
     #[test]
-    fn poentry_translated() {
+    fn translated() {
         // obsolete means untranslated
         let mut obsolete_entry = POEntry::new(0);
         obsolete_entry.obsolete = true;
@@ -554,7 +554,7 @@ mod tests {
     }
 
     #[test]
-    fn poentry_merge() {
+    fn merge() {
         let mut poentry = POEntry::new(0);
         poentry.msgid = "msgid".to_string();
         poentry.msgstr = Some("msgstr".to_string());
@@ -582,7 +582,7 @@ mod tests {
     }
 
     #[test]
-    fn poentry_to_string() {
+    fn to_string() {
         let mut entry = POEntry::new(0);
 
         // empty

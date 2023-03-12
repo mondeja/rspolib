@@ -1,4 +1,4 @@
-def test_poentry_constructor(runner):
+def test_constructor(runner):
     def msgid_msgstr_kwargs(polib):
         entry = polib.POEntry(
             msgid="msgid 1",
@@ -73,7 +73,7 @@ def test_methods(runner):
 
 
 def test_magic_methods(runner):
-    def cmp__(polib):
+    def __cmp__(polib):
         entry1 = polib.POEntry(msgid="msgid 1", msgstr="msgstr 1")
         entry2 = polib.POEntry(msgid="msgid 1", msgstr="msgstr 1")
         entry3 = polib.POEntry(msgid="msgid 2", msgstr="msgstr 2")
@@ -82,5 +82,5 @@ def test_magic_methods(runner):
         assert entry3.__cmp__(entry2) == 1
 
     runner.run(
-        cmp__,
+        __cmp__,
     )

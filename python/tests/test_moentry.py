@@ -1,4 +1,4 @@
-def test_moentry_constructor(runner):
+def test_constructor(runner):
     def msgid_msgstr_kwargs(polib):
         entry = polib.MOEntry(
             msgid="msgid 1",

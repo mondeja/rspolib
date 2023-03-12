@@ -286,18 +286,18 @@ impl PyPOEntry {
             == Ordering::Greater)
     }
 
-    fn __lt__(&self, other: &PyPOEntry) -> PyResult<bool> {
-        Ok(self
-            .0
-            .cmp_by(&other._inner(), &EntryCmpByOptions::default())
-            == Ordering::Less)
-    }
-
     fn __ge__(&self, other: &PyPOEntry) -> PyResult<bool> {
         Ok(self
             .0
             .cmp_by(&other._inner(), &EntryCmpByOptions::default())
             != Ordering::Less)
+    }
+
+    fn __lt__(&self, other: &PyPOEntry) -> PyResult<bool> {
+        Ok(self
+            .0
+            .cmp_by(&other._inner(), &EntryCmpByOptions::default())
+            == Ordering::Less)
     }
 
     fn __le__(&self, other: &PyPOEntry) -> PyResult<bool> {

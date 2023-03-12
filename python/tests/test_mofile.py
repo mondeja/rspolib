@@ -30,16 +30,14 @@ def test_format(runner, tests_dir):
 def test_edit_save(runner, tests_dir, output_dir):
     def edit_save(polib):
         mo = polib.mofile(f"{tests_dir}/all.mo")
-        mo.metadata["Project-Id-Version"] = "test"
-        entries = mo.entries if polib.__name__ == "rspolib" else mo
-        for entry in entries:
-            entry.msgstr = "test"
+        if polib.__name__ == "rspolib":
+            mo.update_metadata({"Project-Id-Version": "test"})
+        else:
+            mo.metadata["Project-Id-Version"] = "test"
         mo.save(f"{output_dir}/mofile_edit_save.mo")
         mo.save_as_pofile(f"{output_dir}/mofile_edit_save.po")
 
-    runner.run(
-        edit_save,
-    )
+    runner.run(edit_save)
 
 
 def test_magic_methods(runner, tests_dir):

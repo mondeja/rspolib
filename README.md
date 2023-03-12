@@ -24,4 +24,11 @@ for entry in po.entries {
 po.save("path/to/other/file.po");
 ```
 
+---
+
+## Python bindings
+
+- [Quickstart](https://github.com/mondeja/rspolib/tree/master/python#readme)
+- [Reference](https://github.com/mondeja/rspolib/blob/master/python/REFERENCE.md)
+
 [polib]: https://github.com/izimobil/polib

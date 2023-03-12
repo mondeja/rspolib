@@ -2,7 +2,7 @@
 
 [![pypi](https://img.shields.io/pypi/v/rspolib?logo=pypi&logoColor=white)](https://pypi.org/project/rspolib/) [![pyversions](https://img.shields.io/pypi/pyversions/rspolib?logo=python&logoColor=white)](https://pypi.org/project/rspolib/)
 
-Python bindings for the Rust crate [rspolib].
+Python bindings for the Rust crate [rspolib]. Check the [reference](https://github.com/mondeja/rspolib/blob/master/python/REFERENCE.md) for more information.
 
 ## Install
 

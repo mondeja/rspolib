@@ -261,7 +261,7 @@ impl MOFile {
                 for (i, v) in e.msgstr_plural.iter().enumerate() {
                     msgstr.push_str(v);
                     if i < msgstr_plural_length - 1 {
-                        msgstr.push('\u{0000}');
+                        msgstr.push('\u{0}');
                     }
                 }
             } else {
