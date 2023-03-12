@@ -1,5 +1,21 @@
 # rspolib Python bindings reference
 
+- [Exceptions](#exceptions)
+  - [`IOError`](#ioerror)
+  - [`SyntaxError`](#syntaxerror)
+  - [`EscapingError`](#escapingerror)
+- [Factories](#factories)
+  - [`pofile(...) -> POFile`](#pofilepath_or_content-str-wrapwidth-int--78---pofile)
+  - [`mofile(...) -> MOFile`](#mofilepath_or_content-str-wrapwidth-int--78---mofile)
+- [Classes](#classes)
+  - [`POFile`](#pofile)
+  - [`MOFile`](#mofile)
+  - [`POEntry`](#poentry)
+  - [`MOEntry`](#moentry)
+- [Utilities](#utilities)
+  - [`unescape(string: str) -> str`](#unescapestring-str---str)
+  - [`escape(string: str) -> str`](#escapestring-str---str)
+
 ## Exceptions
 
 ### `IOError`
@@ -488,7 +504,7 @@ Merges the entry with another one.
 
 #### `__cmp__(self, other: POEntry) -> int`
 
-## Other utilities
+## Utilities
 
 ### `unescape(string: str) -> str`
 
