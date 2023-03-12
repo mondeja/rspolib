@@ -54,7 +54,7 @@ fn maybe_extract_msgctxt_from_msgid(
     if msgid_tokens.len() == 2 {
         (msgid_tokens[0].into(), Some(msgid_tokens[1].to_string()))
     } else {
-        (msgid_tokens[0].into(), None)
+        (msgid.into(), None)
     }
 }
 

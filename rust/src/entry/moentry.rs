@@ -228,7 +228,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn moentry_constructor() {
+    fn constructor() {
         let moentry = MOEntry::new(
             "msgid".to_string(),
             Some("msgstr".to_string()),

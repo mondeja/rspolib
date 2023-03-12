@@ -78,7 +78,7 @@ impl PyMOFile {
 
     #[getter]
     fn magic_number(&self) -> PyResult<u32> {
-        Ok(self.0.magic_number.unwrap_or(0))
+        Ok(self.0.magic_number.unwrap_or(MAGIC))
     }
 
     #[getter]
@@ -86,18 +86,7 @@ impl PyMOFile {
         Ok(self.0.version.unwrap_or(0))
     }
 
-    #[getter]
-    fn metadata(&self) -> PyResult<HashMap<String, String>> {
-        Ok(self.0.metadata.clone())
-    }
-
-    #[setter]
-    fn set_metadata(&mut self, metadata: HashMap<String, String>) {
-        self.0.metadata = metadata;
-    }
-
-    #[getter]
-    fn entries(&self) -> PyResult<Vec<PyMOEntry>> {
+    fn get_entries(&self) -> PyResult<Vec<PyMOEntry>> {
         let mut entries = Vec::new();
         for entry in &self.0.entries {
             entries.push(PyMOEntry::from(entry));
@@ -112,6 +101,25 @@ impl PyMOFile {
             new_entries.push(entry._inner());
         }
         self.0.entries = new_entries;
+    }
+
+    fn get_metadata(&self) -> PyResult<HashMap<String, String>> {
+        Ok(self.0.metadata.clone())
+    }
+
+    #[setter]
+    fn set_metadata(&mut self, metadata: HashMap<String, String>) {
+        self.0.metadata = metadata;
+    }
+
+    fn update_metadata(&mut self, metadata: HashMap<String, String>) {
+        for (key, value) in metadata {
+            self.0.metadata.insert(key, value);
+        }
+    }
+
+    fn remove_metadata_field(&mut self, key: &str) {
+        self.0.metadata.remove(key);
     }
 
     #[getter]
@@ -176,6 +184,11 @@ impl PyMOFile {
         Ok(self.0.as_bytes_be().to_vec())
     }
 
+    fn remove(&mut self, entry: &PyMOEntry) -> PyResult<()> {
+        self.0.remove(&entry._inner());
+        Ok(())
+    }
+
     fn remove_by_msgid(&mut self, msgid: &str) -> PyResult<()> {
         self.0.remove_by_msgid(msgid);
         Ok(())
@@ -187,6 +200,11 @@ impl PyMOFile {
         msgctxt: &str,
     ) -> PyResult<()> {
         self.0.remove_by_msgid_msgctxt(msgid, msgctxt);
+        Ok(())
+    }
+
+    fn append(&mut self, entry: &PyMOEntry) -> PyResult<()> {
+        self.0.entries.push(entry._inner());
         Ok(())
     }
 
@@ -223,16 +241,6 @@ impl PyMOFile {
             Some(entry) => Ok(Some(PyMOEntry::from(entry))),
             None => Ok(None),
         }
-    }
-
-    fn remove(&mut self, entry: &PyMOEntry) -> PyResult<()> {
-        self.0.remove(&entry._inner());
-        Ok(())
-    }
-
-    fn append(&mut self, entry: &PyMOEntry) -> PyResult<()> {
-        self.0.entries.push(entry._inner());
-        Ok(())
     }
 
     fn __len__(&self) -> PyResult<usize> {

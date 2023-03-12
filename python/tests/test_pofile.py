@@ -29,10 +29,10 @@ def test_format(runner, tests_dir):
 def test_edit_save(runner, tests_dir, output_dir):
     def edit_save(polib):
         po = polib.pofile(f"{tests_dir}/django-complete.po")
-        po.metadata["Project-Id-Version"] = "test"
-        entries = po.entries if polib.__name__ == "rspolib" else po
-        for entry in entries:
-            entry.msgstr = "test"
+        if polib.__name__ == "rspolib":
+            po.update_metadata({"Project-Id-Version": "test"})
+        else:
+            po.metadata["Project-Id-Version"] = "test"
         po.save(f"{output_dir}/pofile_edit_save.po")
         po.save_as_mofile(f"{output_dir}/pofile_edit_save.mo")
 
@@ -48,6 +48,11 @@ def test_setters(runner):
     pypo = pypolib.POFile()
     rspo = rspolib.POFile()
 
+    def _get_entries(file, polib):
+        if polib.__name__ == "polib":
+            return file.entries
+        return file.get_entries()
+
     def set_entries(polib):
         entry1 = polib.POEntry(msgid="test1", msgstr="test1")
         entry2 = polib.POEntry(msgid="test2", msgstr="test2")
@@ -56,7 +61,7 @@ def test_setters(runner):
 
         po = pypo if polib.__name__ == "polib" else rspo
         po.entries = [entry1, entry2, entry3, entry4]
-        assert len(po.entries) == 4
+        assert len(_get_entries(po, polib)) == 4
 
         po.entries = []
         assert len(po) == 0
@@ -90,12 +95,30 @@ def test_methods(runner, tests_dir):
             entry = entry[0]
         assert entry.msgid == "msgid 5"
 
+    def remove_metadata_field(polib):
+        po = polib.pofile(f"{tests_dir}/metadata.po")
+        assert "Project-Id-Version" in po.get_metadata()
+        po.remove_metadata_field("Project-Id-Version")
+        assert "Project-Id-Version" not in po.get_metadata()
+
+    def update_metadata(polib):
+        po = polib.pofile("")
+        po.update_metadata({"Project-Id-Version": "test"})
+        metadata = po.get_metadata()
+        assert metadata["Project-Id-Version"] == "test"
+        assert len(metadata) == 1
+
     runner.run(
         percent_translated,
         untranslated_entries,
         translated_entries,
         fuzzy_entries,
         find,
+    )
+    runner.run(
+        remove_metadata_field,
+        update_metadata,
+        run_polib=False,
     )
 
 
@@ -126,18 +149,19 @@ def test_find_entry(runner, tests_dir):
             )
         assert entry.msgstr == "Jul."
 
-    def find_by_msgid_plural(polib):
-        if polib.__name__ == "rspolib":
-            entries = rspo.find("Please submit %d or fewer forms.", by="msgid_plural")
-            entry = entries[0]
-        else:
-            entry = pypo.find("Please submit %d or fewer forms.", by="msgid_plural")
+    def find_by_msgid_plural_polib(polib):
+        entry = pypo.find("Please submit %d or fewer forms.", by="msgid_plural")
         assert entry.msgstr_plural[0] == "Por favor, envíe %d formulario o menos."
+
+    def find_by_msgid_plural_rspolib(polib):
+        entries = rspo.find("Please submit %d or fewer forms.", by="msgid_plural")
+        entry = entries[0]
+        assert entry.get_msgstr_plural()[0] == "Por favor, envíe %d formulario o menos."
 
     runner.run(
         find_by_msgid,
         find_by_msgid_msgctxt,
-        find_by_msgid_plural,
+        (find_by_msgid_plural_polib, find_by_msgid_plural_rspolib),
     )
 
 
@@ -172,7 +196,7 @@ def test_remove_entry(runner, tests_dir):
 
 
 def test_magic_methods(runner, tests_dir):
-    def iter__(polib):
+    def __iter__(polib):
         po = polib.pofile(f"{tests_dir}/django-complete.po")
         assert hasattr(po, "__iter__")
 
@@ -182,14 +206,35 @@ def test_magic_methods(runner, tests_dir):
             iterated = True
         assert iterated
 
-    def len__(polib):
+    def __len__(polib):
         po = polib.pofile(f"{tests_dir}/django-complete.po")
         assert hasattr(po, "__len__")
         assert len(po) > 320
 
+    def __contains__(polib):
+        po = polib.POFile()
+        assert hasattr(po, "__contains__")
+
+        entry = polib.POEntry(msgid="foo", msgstr="bar")
+        assert entry not in po
+        po.append(entry)
+        assert entry in po
+
+    def __getitem__(polib):
+        po = polib.POFile()
+        assert hasattr(po, "__getitem__")
+
+        entry = polib.POEntry(msgid="foo", msgstr="bar")
+        assert entry not in po
+        po.append(entry)
+        assert po[0].msgid == "foo"
+        assert po[0].msgstr == "bar"
+
     runner.run(
-        iter__,
-        len__,
+        __iter__,
+        __len__,
+        __contains__,
+        __getitem__,
     )
 
 
@@ -204,7 +249,7 @@ def test_metadata(runner, tests_dir):
         assert len(pypo.metadata) == 11
 
     def rspolib_metadata_get(polib):
-        assert len(rspo.metadata) == 11
+        assert len(rspo.get_metadata()) == 11
 
     runner.run(
         (pypolib_metadata_get, rspolib_metadata_get),

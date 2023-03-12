@@ -107,7 +107,7 @@ impl POFileParser {
             file: POFile::new(file_options),
 
             current_state: St::ST,
-            current_token: String::with_capacity(21),
+            current_token: String::with_capacity(32),
             current_line: 0,
             current_entry: POEntry::new(0),
             msgstr_index: 0,
@@ -761,7 +761,7 @@ mod tests {
     use std::fs;
 
     #[test]
-    fn pofile_parser_constructor() {
+    fn constructor() {
         let path = "tests-data/empty.po";
         let content: String = fs::read_to_string(path).unwrap();
 

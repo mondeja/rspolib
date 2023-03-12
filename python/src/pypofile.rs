@@ -64,8 +64,7 @@ impl PyPOFile {
         }
     }
 
-    #[getter]
-    fn entries(&self) -> PyResult<Vec<PyPOEntry>> {
+    fn get_entries(&self) -> PyResult<Vec<PyPOEntry>> {
         let mut entries = Vec::new();
         for entry in &self.0.entries {
             entries.push(PyPOEntry::from(entry));
@@ -89,14 +88,23 @@ impl PyPOFile {
         self.0.header = header;
     }
 
-    #[getter]
-    fn metadata(&self) -> PyResult<HashMap<String, String>> {
+    fn get_metadata(&self) -> PyResult<HashMap<String, String>> {
         Ok(self.0.metadata.clone())
     }
 
     #[setter]
     fn set_metadata(&mut self, metadata: HashMap<String, String>) {
         self.0.metadata = metadata;
+    }
+
+    fn update_metadata(&mut self, metadata: HashMap<String, String>) {
+        for (key, value) in metadata {
+            self.0.metadata.insert(key, value);
+        }
+    }
+
+    fn remove_metadata_field(&mut self, key: &str) {
+        self.0.metadata.remove(key);
     }
 
     #[getter]
@@ -144,6 +152,11 @@ impl PyPOFile {
         Ok(())
     }
 
+    fn remove(&mut self, entry: &PyPOEntry) -> PyResult<()> {
+        self.0.remove(&entry._inner());
+        Ok(())
+    }
+
     fn remove_by_msgid(&mut self, msgid: &str) -> PyResult<()> {
         self.0.remove_by_msgid(msgid);
         Ok(())
@@ -155,6 +168,11 @@ impl PyPOFile {
         msgctxt: &str,
     ) -> PyResult<()> {
         self.0.remove_by_msgid_msgctxt(msgid, msgctxt);
+        Ok(())
+    }
+
+    fn append(&mut self, entry: &PyPOEntry) -> PyResult<()> {
+        self.0.entries.push(entry._inner());
         Ok(())
     }
 
@@ -194,11 +212,6 @@ impl PyPOFile {
             Some(entry) => Ok(Some(PyPOEntry::from(&entry))),
             None => Ok(None),
         }
-    }
-
-    fn remove(&mut self, entry: &PyPOEntry) -> PyResult<()> {
-        self.0.remove(&entry._inner());
-        Ok(())
     }
 
     fn percent_translated(&self) -> PyResult<f32> {
@@ -261,11 +274,6 @@ impl PyPOFile {
 
     fn as_bytes_be(&self) -> PyResult<Vec<u8>> {
         Ok(MOFile::from(&self.0).as_bytes_be().into())
-    }
-
-    fn append(&mut self, entry: &PyPOEntry) -> PyResult<()> {
-        self.0.entries.push(entry._inner());
-        Ok(())
     }
 
     fn __len__(&self) -> PyResult<usize> {

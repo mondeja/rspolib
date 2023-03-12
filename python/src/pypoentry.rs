@@ -90,8 +90,7 @@ impl PyPOEntry {
         Ok(())
     }
 
-    #[getter]
-    fn msgstr_plural(&self) -> PyResult<Vec<String>> {
+    fn get_msgstr_plural(&self) -> PyResult<Vec<String>> {
         Ok(self.0.msgstr_plural.clone())
     }
 
@@ -157,8 +156,7 @@ impl PyPOEntry {
         Ok(())
     }
 
-    #[getter]
-    fn occurrences(&self) -> PyResult<Vec<(String, String)>> {
+    fn get_occurrences(&self) -> PyResult<Vec<(String, String)>> {
         Ok(self.0.occurrences.clone())
     }
 
@@ -171,8 +169,7 @@ impl PyPOEntry {
         Ok(())
     }
 
-    #[getter]
-    fn flags(&self) -> PyResult<Vec<String>> {
+    fn get_flags(&self) -> PyResult<Vec<String>> {
         Ok(self.0.flags.clone())
     }
 
@@ -286,18 +283,18 @@ impl PyPOEntry {
             == Ordering::Greater)
     }
 
-    fn __lt__(&self, other: &PyPOEntry) -> PyResult<bool> {
-        Ok(self
-            .0
-            .cmp_by(&other._inner(), &EntryCmpByOptions::default())
-            == Ordering::Less)
-    }
-
     fn __ge__(&self, other: &PyPOEntry) -> PyResult<bool> {
         Ok(self
             .0
             .cmp_by(&other._inner(), &EntryCmpByOptions::default())
             != Ordering::Less)
+    }
+
+    fn __lt__(&self, other: &PyPOEntry) -> PyResult<bool> {
+        Ok(self
+            .0
+            .cmp_by(&other._inner(), &EntryCmpByOptions::default())
+            == Ordering::Less)
     }
 
     fn __le__(&self, other: &PyPOEntry) -> PyResult<bool> {

@@ -1,4 +1,4 @@
-def test_poentry_constructor(runner):
+def test_constructor(runner):
     def msgid_msgstr_kwargs(polib):
         entry = polib.POEntry(
             msgid="msgid 1",
@@ -8,34 +8,46 @@ def test_poentry_constructor(runner):
         assert entry.msgstr == "msgstr 1"
 
     def get_set_all(polib):
+        msgstr_plural = [
+            "msgstr_plural 1",
+            "msgstr_plural 2",
+        ]
+        flags = ["flag 1", "flag 2"]
+        occurrences = [
+            ("path/to/file1", "1"),
+            ("path/to/file2", "2"),
+        ]
+
         entry = polib.POEntry()
         entry.msgid = "msgid 1"
         entry.msgstr = "msgstr 1"
         entry.msgctxt = "msgctxt 1"
         entry.msgid_plural = "msgid_plural 1"
-        entry.msgstr_plural = [
-            "msgstr_plural 1",
-            "msgstr_plural 2",
-        ]
+        entry.msgstr_plural = msgstr_plural
         entry.obsolete = True
         entry.comment = "comment 1"
         entry.tcomment = "tcomment 1"
-        entry.flags = ["flag 1", "flag 2"]
+        entry.flags = flags
         entry.previous_msgctxt = "previous_msgctxt 1"
         entry.previous_msgid = "previous_msgid 1"
         entry.previous_msgid_plural = "previous_msgid_plural 1"
+        entry.occurrences = occurrences
+
         assert entry.msgid == "msgid 1"
         assert entry.msgstr == "msgstr 1"
         assert entry.msgctxt == "msgctxt 1"
         assert entry.msgid_plural == "msgid_plural 1"
-        assert entry.msgstr_plural == [
-            "msgstr_plural 1",
-            "msgstr_plural 2",
-        ]
+        if polib.__name__ == "polib":
+            assert entry.msgstr_plural == msgstr_plural
+            assert entry.flags == flags
+            assert entry.occurrences == occurrences
+        else:
+            assert entry.get_msgstr_plural() == msgstr_plural
+            assert entry.get_flags() == flags
+            assert entry.get_occurrences() == occurrences
         assert entry.obsolete
         assert entry.comment == "comment 1"
         assert entry.tcomment == "tcomment 1"
-        assert entry.flags == ["flag 1", "flag 2"]
         assert entry.previous_msgctxt == "previous_msgctxt 1"
         assert entry.previous_msgid == "previous_msgid 1"
         assert entry.previous_msgid_plural == "previous_msgid_plural 1"
@@ -73,7 +85,7 @@ def test_methods(runner):
 
 
 def test_magic_methods(runner):
-    def cmp__(polib):
+    def __cmp__(polib):
         entry1 = polib.POEntry(msgid="msgid 1", msgstr="msgstr 1")
         entry2 = polib.POEntry(msgid="msgid 1", msgstr="msgstr 1")
         entry3 = polib.POEntry(msgid="msgid 2", msgstr="msgstr 2")
@@ -82,5 +94,5 @@ def test_magic_methods(runner):
         assert entry3.__cmp__(entry2) == 1
 
     runner.run(
-        cmp__,
+        __cmp__,
     )
