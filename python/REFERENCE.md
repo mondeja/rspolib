@@ -13,8 +13,8 @@
   - [`POEntry`](#poentry)
   - [`MOEntry`](#moentry)
 - [Utilities](#utilities)
-  - [`unescape(string: str) -> str`](#unescapestring-str---str)
-  - [`escape(string: str) -> str`](#escapestring-str---str)
+  - [`unescape(...) -> str`](#unescapestring-str---str)
+  - [`escape(...) -> str`](#escapestring-str---str)
 
 ## Exceptions
 
@@ -506,7 +506,7 @@ Merges the entry with another one.
 
 ## Utilities
 
-### `unescape(string: str) -> str`
+### `unescape(text: str) -> str`
 
 Unescapes a PO file string.
 
@@ -515,6 +515,6 @@ Can raise an [`EscapingError`](#escapingerror) if one of the next problems is fo
 - A escape character is escaping a character that should not be escaped.
 - There is an escape character at the end of the string.
 
-### `escape(string: str) -> str`
+### `escape(text: str) -> str`
 
 Escapes a PO file string.

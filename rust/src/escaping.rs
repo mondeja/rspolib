@@ -21,17 +21,17 @@ pub fn escape(text: &str) -> Cow<'_, str> {
 }
 
 struct EscapedStringInterpreter<'a> {
-    s: std::str::Chars<'a>,
+    characters: std::str::Chars<'a>,
 }
 
 impl<'a> Iterator for EscapedStringInterpreter<'a> {
     type Item = Result<char, EscapingError>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.s.next().map(|c| match c {
-            '\\' => match self.s.next() {
+        self.characters.next().map(|c| match c {
+            '\\' => match self.characters.next() {
                 None => Err(EscapingError::EscapeAtEndOfString {
-                    text: self.s.as_str().to_string(),
+                    text: self.characters.as_str().to_string(),
                 }),
                 Some('"') => Ok('"'),
                 Some('n') => Ok('\n'),
@@ -43,7 +43,7 @@ impl<'a> Iterator for EscapedStringInterpreter<'a> {
                 Some('\\') => Ok('\\'),
                 Some(c) => {
                     Err(EscapingError::InvalidEscapedCharacter {
-                        text: self.s.as_str().to_string(),
+                        text: self.characters.as_str().to_string(),
                         character: c,
                     })
                 }
@@ -53,11 +53,14 @@ impl<'a> Iterator for EscapedStringInterpreter<'a> {
     }
 }
 
-pub fn unescape(s: &str) -> Result<Cow<'_, str>, EscapingError> {
-    if s.contains('\\') {
-        (EscapedStringInterpreter { s: s.chars() }).collect()
+pub fn unescape(text: &str) -> Result<Cow<'_, str>, EscapingError> {
+    if text.contains('\\') {
+        (EscapedStringInterpreter {
+            characters: text.chars(),
+        })
+        .collect()
     } else {
-        Ok(s.into())
+        Ok(text.into())
     }
 }
 
