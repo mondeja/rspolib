@@ -14,7 +14,7 @@ Raised when there is an error parsing the content of a PO file.
 
 Raised when there is an error unescaping a string.
 
-This error is not directly raised by the parsing functions, only is useful when you are calling `rspolib.unescape`.
+This error is not directly raised by the parsing functions, only is useful when you are calling [`unescape`](#unescapestring-str---str).
 
 ## Factories
 
@@ -360,7 +360,7 @@ Returns an iterator over the entries of the file.
 
 #### `@setter msgid_plural(self, msgid_plural: Optional[str])`
 
-#### `@getter msgstr_plural(self) -> List[str]`
+#### `get_msgstr_plural(self) -> List[str]`
 
 #### `@setter msgstr_plural(self, msgstr_plural: List[str])`
 
@@ -380,11 +380,11 @@ Returns an iterator over the entries of the file.
 
 #### `@setter comment(self, comment: Optional[str])`
 
-#### `@getter flags(self) -> List[str]`
+#### `get_flags(self) -> List[str]`
 
 #### `@setter flags(self, flags: List[str])`
 
-#### `@getter occurrences(self) -> List[(str, str)]`
+#### `get_occurrences(self) -> List[(str, str)]`
 
 #### `@setter occurrences(self, occurrences: List[(str, str)]`
 
@@ -456,7 +456,7 @@ Merges the entry with another one.
 
 #### `@setter msgid_plural(self, msgid_plural: Optional[str])`
 
-#### `@getter msgstr_plural(self) -> List[str]`
+#### `get_msgstr_plural(self) -> List[str]`
 
 #### `@setter msgstr_plural(self, msgstr_plural: List[str])`
 

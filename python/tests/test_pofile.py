@@ -149,18 +149,19 @@ def test_find_entry(runner, tests_dir):
             )
         assert entry.msgstr == "Jul."
 
-    def find_by_msgid_plural(polib):
-        if polib.__name__ == "rspolib":
-            entries = rspo.find("Please submit %d or fewer forms.", by="msgid_plural")
-            entry = entries[0]
-        else:
-            entry = pypo.find("Please submit %d or fewer forms.", by="msgid_plural")
+    def find_by_msgid_plural_polib(polib):
+        entry = pypo.find("Please submit %d or fewer forms.", by="msgid_plural")
         assert entry.msgstr_plural[0] == "Por favor, envíe %d formulario o menos."
+
+    def find_by_msgid_plural_rspolib(polib):
+        entries = rspo.find("Please submit %d or fewer forms.", by="msgid_plural")
+        entry = entries[0]
+        assert entry.get_msgstr_plural()[0] == "Por favor, envíe %d formulario o menos."
 
     runner.run(
         find_by_msgid,
         find_by_msgid_msgctxt,
-        find_by_msgid_plural,
+        (find_by_msgid_plural_polib, find_by_msgid_plural_rspolib),
     )
 
 

@@ -80,8 +80,7 @@ impl PyMOEntry {
         Ok(())
     }
 
-    #[getter]
-    fn msgstr_plural(&self) -> PyResult<Vec<String>> {
+    fn get_msgstr_plural(&self) -> PyResult<Vec<String>> {
         Ok(self.0.msgstr_plural.clone())
     }
 
