@@ -20,15 +20,15 @@ This error is not directly raised by the parsing functions, only is useful when 
 
 ### `pofile(path_or_content: str, wrapwidth: int = 78) -> POFile`
 
-Parse a PO file by path or content and returns a [`POFile`] object.
+Parse a PO file by path or content and returns a [`POFile`](#pofile) object.
 
-Can raise an [`SyntaxError`] if a problem is found parsing the file.
+Can raise a [`SyntaxError`](#syntaxerror) if a problem is found parsing the file.
 
 ### `mofile(path_or_content: str, wrapwidth: int = 78) -> MOFile`
 
-Parse a MO file by path or content and returns a [`MOFile`] object.
+Parse a MO file by path or content and returns a [`MOFile`](#mofile) object.
 
-Can raise an [`IOError`] if a problem is found parsing the file.
+Can raise an [`IOError`](#ioerror) if a problem is found parsing the file.
 
 ## Classes
 
@@ -36,7 +36,7 @@ Can raise an [`IOError`] if a problem is found parsing the file.
 
 #### `__init__(self, path_or_content: str = "", wrapwidth: int = 78)`
 
-Create a new [`POFile`] object, by default empty.
+Create a new [`POFile`](#pofile) object, by default empty.
 
 #### `get_entries(self) -> List[POEntry]`
 
@@ -220,7 +220,7 @@ Indicate that the bytes of the file must be read in little endian (`MAGIC`) or b
 
 #### `__init__(self, path_or_content: str = "", wrapwidth: int = 78)`
 
-Creates a new [`MOFile`] object, by default empty.
+Creates a new [`MOFile`](#mofile) object, by default empty.
 
 #### `@getter magic_number(self) -> int`
 
@@ -494,7 +494,7 @@ Merges the entry with another one.
 
 Unescapes a PO file string.
 
-Can raise an [`EscapingError`] if one of the next problems is found:
+Can raise an [`EscapingError`](#escapingerror) if one of the next problems is found:
 
 - A escape character is escaping a character that should not be escaped.
 - There is an escape character at the end of the string.

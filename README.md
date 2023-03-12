@@ -24,6 +24,8 @@ for entry in po.entries {
 po.save("path/to/other/file.po");
 ```
 
+See the documentation at [docs.rs/rspolib](https://docs.rs/rspolib)
+
 ---
 
 ## Python bindings
