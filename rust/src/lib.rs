@@ -31,8 +31,6 @@
 //! - [Quickstart](https://github.com/mondeja/rspolib/tree/master/python#readme)
 //! - [Reference](https://github.com/mondeja/rspolib/blob/master/python/REFERENCE.md)
 //!
-//! [polib]: https://github.com/izimobil/polib
-//!
 //! ## Quick examples
 //!
 //! ### Read and save a PO file

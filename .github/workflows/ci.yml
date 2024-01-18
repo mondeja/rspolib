@@ -108,7 +108,7 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v3
         with:
-          name: wheels
+          name: linux-wheels
           path: python/dist
 
   windows-py-wheels:
@@ -125,7 +125,7 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v3
         with:
-          name: wheels
+          name: windows-wheels
           path: python/dist
 
   macos-py-wheels:
@@ -142,7 +142,7 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: wheels
+          name: macos-wheels
           path: python/dist
 
   test-release-rust-crate:
@@ -188,8 +188,12 @@ jobs:
       - linux-py-wheels
     steps:
       - uses: actions/download-artifact@v4
-        with:
-          name: wheels
+      - name: Move artifacts to wheels/
+        run: |
+          mkdir wheels
+          mv linux-wheels/*.whl wheels/
+          mv windows-wheels/*.whl wheels/
+          mv macos-wheels/*.whl wheels/
       - name: Publish to PyPI
         uses: PyO3/maturin-action@v1
         env:
