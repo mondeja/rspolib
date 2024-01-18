@@ -13,7 +13,7 @@ cargo add rspolib
 ## Usage
 
 ```rust
-use rspolib::{pofile, Save};
+use rspolib::{pofile, prelude::*};
 
 let po = pofile("./tests-data/flags.po").unwrap();
 
