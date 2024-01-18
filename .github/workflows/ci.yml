@@ -208,9 +208,8 @@ jobs:
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     needs:
-      - macos-py-wheels
-      - windows-py-wheels
-      - linux-py-wheels
+      - test-release-py-wheels
+      - release-rust-crate
     steps:
       - uses: actions/download-artifact@v4
       - name: Move artifacts to wheels/
