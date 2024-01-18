@@ -1,9 +1,5 @@
-//! PO and MO files manipulation library.
-//!
-//! Port to Rust of the Python library [polib].
-//! The implementation differs a bit to make it even better.
-//!
-//! ## Quick start
+#![doc = include_str!("../../README.md")]
+//! ## Quick examples
 //!
 //! ### Read and save a PO file
 //!

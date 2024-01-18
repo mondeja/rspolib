@@ -26,8 +26,6 @@ po.save("path/to/other/file.po");
 
 See the documentation at [docs.rs/rspolib](https://docs.rs/rspolib)
 
----
-
 ## Python bindings
 
 [![Python versions](https://img.shields.io/pypi/pyversions/rspolib?logo=python&logoColor=white)](https://pypi.org/project/rspolib/#files)
