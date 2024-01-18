@@ -171,6 +171,22 @@ jobs:
       - lint
     steps:
       - uses: actions/download-artifact@v4
+        with:
+          name: linux-wheels
+          path: linux-wheels
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-wheels
+          path: windows-wheels
+      - uses: actions/download-artifact@v4
+        with:
+          name: macos-wheels
+          path: macos-wheels
+      - name: List wheels
+        run: |
+          ls linux-wheels/
+          ls windows-wheels/
+          ls macos-wheels/
       - name: Move artifacts to wheels/
         run: |
           mkdir wheels
