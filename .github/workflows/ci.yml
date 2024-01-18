@@ -15,11 +15,11 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.11"
+          python-version: "3.12.1"
       - name: Install dependencies
         run: |
           pip install --upgrade pip
@@ -41,11 +41,11 @@ jobs:
           - windows-latest
           - macos-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup Rust
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-          rustup default ${{ matrix.rust-toolchain }}
+        uses: hecrj/setup-rust-action@v2
+        with:
+          rust-version: ${{ matrix.rust-toolchain }}
       - name: Cache dependencies
         uses: actions/cache@v3
         with:
@@ -69,16 +69,17 @@ jobs:
           - 3.9
           - "3.10"
           - "3.11"
+          - "3.12.1"
         os:
           - ubuntu-latest
           - windows-latest
           - macos-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('**/python/dev-requirements.txt') }}
@@ -98,7 +99,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [test-rust, test-python]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: PyO3/maturin-action@v1
         with:
           manylinux: auto
@@ -116,7 +117,7 @@ jobs:
     needs: [test-rust, test-python]
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: PyO3/maturin-action@v1
         with:
           command: build
@@ -133,14 +134,14 @@ jobs:
     needs: [test-rust, test-python]
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: PyO3/maturin-action@v1
         with:
           command: build
           args: --release -o dist --universal2 --find-interpreter
           working-directory: python
       - name: Upload wheels
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: wheels
           path: python/dist
@@ -150,10 +151,11 @@ jobs:
     needs: test-rust
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup Rust
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+        uses: hecrj/setup-rust-action@v2
+        with:
+          rust-version: stable
       - name: Publish
         run: |
           cd rust
@@ -166,10 +168,11 @@ jobs:
     needs: test-release-rust-crate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup Rust
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+        uses: hecrj/setup-rust-action@v2
+        with:
+          rust-version: stable
       - name: Publish
         run: |
           cd rust
@@ -185,7 +188,7 @@ jobs:
       - windows-py-wheels
       - linux-py-wheels
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: wheels
       - name: Publish to PyPI

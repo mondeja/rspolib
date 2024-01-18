@@ -58,6 +58,7 @@ fn maybe_extract_msgctxt_from_msgid(
     }
 }
 
+/// Parser for MO files
 pub(crate) struct MOFileParser<'a> {
     fhandle: Box<dyn SeekRead + 'a>,
     freader: &'a dyn Fn([u8; 4]) -> u32,

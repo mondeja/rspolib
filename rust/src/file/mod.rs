@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::fs::File;
 use std::io::Write;
+use std::path::Path;
 
 use natord::compare as compare_natural_order;
 
@@ -57,9 +58,9 @@ pub trait SaveAsMOFile {
 pub trait AsBytes {
     /// Return the content as bytes
     fn as_bytes(&self) -> Cow<[u8]>;
-    /// Return the content as bytes in little endian
+    /// Return the content as bytes in little endian encoding
     fn as_bytes_le(&self) -> Cow<[u8]>;
-    /// Return the content as bytes in big endian
+    /// Return the content as bytes in big endian encoding
     fn as_bytes_be(&self) -> Cow<[u8]>;
 }
 
@@ -85,7 +86,7 @@ pub trait AsBytes {
 /// let bytes = fs::read("tests-data/obsoletes.po").unwrap();
 /// let opts = FileOptions::from(bytes);
 /// ```
-#[derive(Clone, Default, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct FileOptions {
     /// Path or content to the file
     pub path_or_content: String,
@@ -93,6 +94,16 @@ pub struct FileOptions {
     pub wrapwidth: usize,
     /// Content as bytes, used by MO files when the content is passed as bytes
     pub byte_content: Option<Vec<u8>>,
+}
+
+impl Default for FileOptions {
+    fn default() -> Self {
+        Self {
+            path_or_content: "".to_string(),
+            wrapwidth: 78,
+            byte_content: None,
+        }
+    }
 }
 
 impl From<&FileOptions> for FileOptions {
@@ -145,13 +156,23 @@ impl From<(Vec<u8>, usize)> for FileOptions {
     }
 }
 
+impl From<&Path> for FileOptions {
+    fn from(path: &Path) -> Self {
+        Self {
+            path_or_content: path.to_str().unwrap().to_string(),
+            wrapwidth: 78,
+            ..Default::default()
+        }
+    }
+}
+
 fn metadata_hashmap_to_msgstr(
     metadata: &HashMap<String, String>,
 ) -> String {
     let ordered_map = metadata_hashmap_to_ordered(metadata);
     let mut parts: Vec<String> =
         Vec::with_capacity(ordered_map.len());
-    for (key, value) in metadata_hashmap_to_ordered(metadata) {
+    for (key, value) in ordered_map {
         let mut msgstr =
             String::with_capacity(key.len() + value.len() + 2);
         msgstr.push_str(&key);
@@ -165,7 +186,8 @@ fn metadata_hashmap_to_msgstr(
 fn metadata_hashmap_to_ordered(
     metadata: &HashMap<String, String>,
 ) -> Vec<(String, String)> {
-    let mut ret: Vec<(String, String)> = vec![];
+    let mut ret: Vec<(String, String)> =
+        Vec::with_capacity(METADATA_KEYS_ORDER.len());
     for key in METADATA_KEYS_ORDER {
         if metadata.contains_key(key) {
             let value = metadata.get(key).unwrap();
