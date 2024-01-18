@@ -120,7 +120,6 @@ impl<'a> From<&'a str> for FileOptions {
     fn from(path_or_content: &'a str) -> Self {
         Self {
             path_or_content: path_or_content.to_string(),
-            wrapwidth: 78,
             ..Default::default()
         }
     }
@@ -139,9 +138,8 @@ impl<'a> From<(&'a str, usize)> for FileOptions {
 impl From<Vec<u8>> for FileOptions {
     fn from(byte_content: Vec<u8>) -> Self {
         Self {
-            path_or_content: "".to_string(),
-            wrapwidth: 78,
             byte_content: Some(byte_content),
+            ..Default::default()
         }
     }
 }
@@ -160,7 +158,6 @@ impl From<&Path> for FileOptions {
     fn from(path: &Path) -> Self {
         Self {
             path_or_content: path.to_str().unwrap().to_string(),
-            wrapwidth: 78,
             ..Default::default()
         }
     }
