@@ -168,6 +168,7 @@ jobs:
       - macos-py-wheels
       - windows-py-wheels
       - linux-py-wheels
+      - lint
     steps:
       - uses: actions/download-artifact@v4
       - name: Move artifacts to wheels/
@@ -212,7 +213,6 @@ jobs:
     needs:
       - test-release-py-wheels
       - release-rust-crate
-      - lint
     steps:
       - uses: actions/download-artifact@v4
       - name: Move artifacts to wheels/
