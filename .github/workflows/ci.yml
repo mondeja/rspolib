@@ -189,7 +189,9 @@ jobs:
   release-rust-crate:
     name: Release Rust crate
     if: startsWith(github.ref, 'refs/tags/')
-    needs: test-release-rust-crate
+    needs:
+      - test-release-rust-crate
+      - lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -210,6 +212,7 @@ jobs:
     needs:
       - test-release-py-wheels
       - release-rust-crate
+      - lint
     steps:
       - uses: actions/download-artifact@v4
       - name: Move artifacts to wheels/
