@@ -53,6 +53,7 @@ impl<'a> Iterator for EscapedStringInterpreter<'a> {
     }
 }
 
+/// Unescape characters in a PO string field
 pub fn unescape(text: &str) -> Result<Cow<'_, str>, EscapingError> {
     if text.contains('\\') {
         (EscapedStringInterpreter {

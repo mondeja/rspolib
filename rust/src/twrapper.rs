@@ -50,6 +50,9 @@ fn get_linebreaks(
 }
 
 /// Wrap a text in lines using Unicode Line Breaking algorithm
+///
+/// - `text` - Text to wrap in lines
+/// - `wrapwidth` - Maximum width of a line
 pub(crate) fn wrap(text: &str, wrapwidth: usize) -> Vec<String> {
     let linebreaks = get_linebreaks(
         &unicode_linebreaks(text).collect(),

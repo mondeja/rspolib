@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fmt;
+use std::path::Path;
 
 use crate::entry::{
     po_metadata_entry_to_string, POEntry, Translated,
@@ -413,7 +414,7 @@ impl fmt::Display for POFile {
     }
 }
 
-// the method save_as_pofile is implemented in the trait
+// Method `save_as_pofile` is implemented in the trait
 impl SaveAsPOFile for POFile {}
 
 impl Save for POFile {
@@ -518,6 +519,12 @@ impl From<Vec<&POEntry>> for POFile {
             file.entries.push(entry.clone());
         }
         file
+    }
+}
+
+impl From<&Path> for POFile {
+    fn from(path: &std::path::Path) -> Self {
+        POFile::from(path.to_str().unwrap())
     }
 }
 

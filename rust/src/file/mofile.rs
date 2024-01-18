@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::fs::File;
 use std::io::Write;
+use std::path::Path;
 
 use crate::entry::{
     mo_metadata_entry_to_string, MOEntry, MsgidEotMsgctxt,
@@ -409,6 +410,12 @@ impl From<Vec<&MOEntry>> for MOFile {
     }
 }
 
+impl From<&Path> for MOFile {
+    fn from(path: &Path) -> Self {
+        MOFile::new(path.to_str().unwrap().into())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -457,6 +464,12 @@ mod tests {
             po_file.translated_entries().len(),
         );
         assert_eq!(mo_file.metadata.len(), po_file.metadata.len());
+    }
+
+    #[test]
+    fn mofile_from_std_path() {
+        let file = MOFile::from(Path::new("tests-data/all.mo"));
+        assert_eq!(file.options.path_or_content, "tests-data/all.mo");
     }
 
     #[test]

@@ -53,12 +53,14 @@ lazy_static! {
     };
 }
 
+/// Function to transition from a state to another in the parser
 type TransitionFn =
     dyn Fn(&mut POFileParser) -> Result<(), SyntaxError>;
 type Symbol = St;
 type CurrentSt = St;
 type Action = St;
 type NextSt = St;
+/// Transitions hashmap, from (symbol, current_state) to (action, next_state)
 pub type Transitions = HashMap<(Symbol, CurrentSt), (Action, NextSt)>;
 
 struct LinesHandler<'a> {
@@ -85,16 +87,23 @@ impl Iterator for LinesHandler<'_> {
     }
 }
 
+/// PO file parser
 pub(crate) struct POFileParser {
+    /// Whether the content is a path to a file or the file content
     content_is_path: bool,
-
+    /// Parsed PO file
     pub file: POFile,
-
+    /// Current state
     current_state: St,
+    /// Current token
     current_token: String,
+    /// Current line number
     current_line: usize,
+    /// Current entry being constructed
     current_entry: POEntry,
+    /// Current msgstr index
     msgstr_index: usize,
+    /// Whether the current entry is obsolete
     entry_obsolete: bool,
 }
 
@@ -147,7 +156,7 @@ impl POFileParser {
         let (action, next_state) =
             *TRANSITIONS.get(&next_transition).unwrap();
 
-        (transition_fn_factory(action))(self)?;
+        (transition_fn_factory(action)?)(self)?;
         if action != St::MC {
             // if not in a message continuation line, change the state
             self.current_state = next_state;
@@ -346,13 +355,10 @@ impl POFileParser {
             }
             // flags line
             self.process(&St::FL)?;
-        } else if tokens[0] == "#" {
-            if line == "#" {
-                //line.push(' ');
-            }
-            // translator comment
-            self.process(&St::TC)?;
-        } else if tokens[0].starts_with("##") {
+        } else if tokens[0] == "#" || tokens[0].starts_with("##") {
+            //if line == "#" {
+            //    line.push(' ');
+            //}
             // translator comment
             self.process(&St::TC)?;
         } else if tokens[0] == "#." {
@@ -677,23 +683,27 @@ fn handle_mc(parser: &mut POFileParser) -> Result<(), SyntaxError> {
     Ok(())
 }
 
-fn transition_fn_factory(action: Action) -> &'static TransitionFn {
+fn transition_fn_factory(
+    action: Action,
+) -> Result<&'static TransitionFn, SyntaxError> {
     match action {
-        St::HE => &handle_he,
-        St::TC => &handle_tc,
-        St::GC => &handle_gc,
-        St::OC => &handle_oc,
-        St::FL => &handle_fl,
-        St::PP => &handle_pp,
-        St::PM => &handle_pm,
-        St::PC => &handle_pc,
-        St::CT => &handle_ct,
-        St::MI => &handle_mi,
-        St::MP => &handle_mp,
-        St::MS => &handle_ms,
-        St::MX => &handle_mx,
-        St::MC => &handle_mc,
-        _ => panic!("Unknown action {:?}", action),
+        St::HE => Ok(&handle_he),
+        St::TC => Ok(&handle_tc),
+        St::GC => Ok(&handle_gc),
+        St::OC => Ok(&handle_oc),
+        St::FL => Ok(&handle_fl),
+        St::PP => Ok(&handle_pp),
+        St::PM => Ok(&handle_pm),
+        St::PC => Ok(&handle_pc),
+        St::CT => Ok(&handle_ct),
+        St::MI => Ok(&handle_mi),
+        St::MP => Ok(&handle_mp),
+        St::MS => Ok(&handle_ms),
+        St::MX => Ok(&handle_mx),
+        St::MC => Ok(&handle_mc),
+        _ => Err(SyntaxError::UnknownState {
+            state: format!("{:?}", action),
+        }),
     }
 }
 
@@ -856,14 +866,10 @@ mod tests {
             parser.file.header,
             Some(
                 concat!(
-                    "This file is distributed under the same license",
-                    "\n\n",
-                    "Translators:",
-                    "\n",
-                    "Foo bar, Year",
-                    "\n\n",
-                    "Baz, YEAR",
-                    "\n\n\n",
+                    "This file is distributed under the same license\n\n",
+                    "Translators:\n",
+                    "Foo bar, Year\n\n",
+                    "Baz, YEAR\n\n\n",
                 )
                 .to_string()
             ),
