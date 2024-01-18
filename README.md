@@ -21,7 +21,7 @@ for entry in &po.entries {
     println!("{}", entry.msgid);
 }
 
-po.save("/tmp/file.po");
+po.save("./file.po");
 ```
 
 See the documentation at [docs.rs/rspolib](https://docs.rs/rspolib)
