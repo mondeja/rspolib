@@ -13,15 +13,15 @@ cargo add rspolib
 ## Usage
 
 ```rust
-use rspolib::pofile;
+use rspolib::{pofile, Save};
 
-let po = pofile("path/to/file.po").unwrap();
+let po = pofile("./tests-data/flags.po").unwrap();
 
-for entry in po.entries {
+for entry in &po.entries {
     println!("{}", entry.msgid);
 }
 
-po.save("path/to/other/file.po");
+po.save("/tmp/file.po");
 ```
 
 See the documentation at [docs.rs/rspolib](https://docs.rs/rspolib)
