@@ -103,13 +103,13 @@ jobs:
         with:
           manylinux: auto
           command: build
-          args: --release --sdist -o dist --find-interpreter
+          args: --release --sdist -o ../linux-wheels --find-interpreter
           working-directory: python
       - name: Upload wheels
         uses: actions/upload-artifact@v3
         with:
           name: linux-wheels
-          path: python/dist
+          path: linux-wheels
 
   windows-py-wheels:
     name: Build Windows Python wheels
@@ -120,13 +120,13 @@ jobs:
       - uses: PyO3/maturin-action@v1
         with:
           command: build
-          args: --release -o dist --find-interpreter
+          args: --release -o ../windows-wheels --find-interpreter
           working-directory: python
       - name: Upload wheels
         uses: actions/upload-artifact@v3
         with:
           name: windows-wheels
-          path: python/dist
+          path: windows-wheels
 
   macos-py-wheels:
     name: Build MacOS Python wheels
@@ -137,13 +137,13 @@ jobs:
       - uses: PyO3/maturin-action@v1
         with:
           command: build
-          args: --release -o dist --universal2 --find-interpreter
+          args: --release -o ../macos-wheels --universal2 --find-interpreter
           working-directory: python
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
           name: macos-wheels
-          path: python/dist
+          path: macos-wheels
 
   test-release-rust-crate:
     name: Test Rust crate release
@@ -190,9 +190,9 @@ jobs:
       - name: Move artifacts to wheels/
         run: |
           mkdir wheels
-          mv linux-wheels/*.whl wheels/
-          mv windows-wheels/*.whl wheels/
-          mv macos-wheels/*.whl wheels/
+          mv linux-wheels/* wheels/
+          mv windows-wheels/* wheels/
+          mv macos-wheels/* wheels/
           ls wheels/
       - name: Publish to PyPI
         uses: PyO3/maturin-action@v1
