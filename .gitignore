@@ -6,6 +6,9 @@ bin.rs
 __pycache__
 coverage*
 polib.py
+file.po
+file.mo
+file.pot
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
