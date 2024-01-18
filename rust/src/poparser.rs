@@ -53,12 +53,14 @@ lazy_static! {
     };
 }
 
+/// Function to transition from a state to another in the parser
 type TransitionFn =
     dyn Fn(&mut POFileParser) -> Result<(), SyntaxError>;
 type Symbol = St;
 type CurrentSt = St;
 type Action = St;
 type NextSt = St;
+/// Transitions hashmap, from (symbol, current_state) to (action, next_state)
 pub type Transitions = HashMap<(Symbol, CurrentSt), (Action, NextSt)>;
 
 struct LinesHandler<'a> {
@@ -85,16 +87,23 @@ impl Iterator for LinesHandler<'_> {
     }
 }
 
+/// PO file parser
 pub(crate) struct POFileParser {
+    /// Whether the content is a path to a file or the file content
     content_is_path: bool,
-
+    /// Parsed PO file
     pub file: POFile,
-
+    /// Current state
     current_state: St,
+    /// Current token
     current_token: String,
+    /// Current line number
     current_line: usize,
+    /// Current entry being constructed
     current_entry: POEntry,
+    /// Current msgstr index
     msgstr_index: usize,
+    /// Whether the current entry is obsolete
     entry_obsolete: bool,
 }
 
