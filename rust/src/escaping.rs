@@ -24,6 +24,7 @@ struct EscapedStringInterpreter<'a> {
     characters: std::str::Chars<'a>,
 }
 
+#[allow(clippy::needless_lifetimes)]
 impl<'a> Iterator for EscapedStringInterpreter<'a> {
     type Item = Result<char, EscapingError>;
 

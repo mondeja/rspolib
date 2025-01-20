@@ -23,8 +23,8 @@ pub trait Translated {
 /// The MO files spec indicates:
 ///
 /// > Contexts are stored (in MO files) by storing
-/// the concatenation of the context, a EOT byte,
-/// and the original string.
+/// > the concatenation of the context, a EOT byte,
+/// > and the original string.
 ///
 /// This trait provides a way to get the string
 /// representation of `msgid` + `EOT` + `msgctxt`.
@@ -244,6 +244,7 @@ impl<'a> POStringField<'a> {
     }
 }
 
+#[allow(clippy::needless_lifetimes)]
 impl<'a> fmt::Display for POStringField<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut lines = vec!["".to_string()];
@@ -280,7 +281,7 @@ impl<'a> fmt::Display for POStringField<'a> {
             ret.push_str(&format!("{}\"{}\"\n", self.delflag, &line));
         }
 
-        write!(f, "{}", ret)
+        write!(f, "{ret}")
     }
 }
 

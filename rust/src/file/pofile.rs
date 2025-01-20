@@ -410,7 +410,7 @@ impl fmt::Display for POFile {
         ret.push_str(&entries_ret);
         ret.push_str(&obsolete_entries_ret);
         ret.pop();
-        write!(f, "{}", ret)
+        write!(f, "{ret}")
     }
 }
 

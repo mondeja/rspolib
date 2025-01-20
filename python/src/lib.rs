@@ -15,7 +15,7 @@ use crate::pypofile::{py_pofile, PyPOFile};
 
 #[pymodule]
 #[pyo3(name = "rspolib")]
-fn py_rspolib(py: Python, m: &PyModule) -> PyResult<()> {
+fn py_rspolib(py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Classes
     m.add_class::<PyMOEntry>()?;
     m.add_class::<PyPOEntry>()?;

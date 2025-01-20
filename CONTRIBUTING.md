@@ -57,5 +57,5 @@ pip install -r dev-requirements.txt
 
 ```bash
 cd python
-maturin develop --release && python3 test.py
+maturin develop --release && pytest
 ```

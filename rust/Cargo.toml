@@ -1,6 +1,7 @@
 [package]
 name = "rspolib"
 version = "0.1.0"
+rust-version = "1.66.1"
 edition = "2021"
 readme = "../README.md"
 description = "PO and MO files manipulation library."
@@ -13,15 +14,15 @@ name = "rspolib"
 path = "src/lib.rs"
 
 [dependencies]
-unicode-linebreak = "0.1.1"
-unicode-width = "0.1.10"
-natord = "1.0.9"
-snafu = "0.8.0"
-lazy_static = "1.4.0"
+unicode-linebreak = "0.1"
+unicode-width = ">0.1"
+natord = "1"
+snafu = "0.8"
+lazy_static = "1"
 
 [dev-dependencies]
 rspolib-testing = { path = "./testing" }
-criterion = "0.5.1"
+criterion = "0.5"
 
 [[bench]]
 name = "parsing"

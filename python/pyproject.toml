@@ -1,9 +1,10 @@
 [build-system]
-requires = ["maturin>=0.14,<0.15"]
+requires = ["maturin>=1"]
 build-backend = "maturin"
 
 [project]
 name = "rspolib"
+version = "0.1.1"
 requires-python = ">=3.8"
 classifiers = [
     "Programming Language :: Rust",
@@ -14,6 +15,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
 
 

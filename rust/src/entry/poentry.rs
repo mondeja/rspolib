@@ -135,7 +135,7 @@ impl POEntry {
                     if lineno.is_empty() {
                         return fpath.clone();
                     }
-                    format!("{}:{}", fpath, lineno)
+                    format!("{fpath}:{lineno}")
                 })
                 .collect::<Vec<String>>();
 

@@ -14,8 +14,7 @@ fn generate_transitions(
         .map(|state| {
             format!(
                 "
-        ((St::{}, St::{}), (St::{}, St::{})),",
-                symbol, state, next_state, next_state
+        ((St::{symbol}, St::{state}), (St::{next_state}, St::{next_state})),"
             )
         })
         .collect::<Vec<String>>()

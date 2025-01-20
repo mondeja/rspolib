@@ -9,6 +9,7 @@ polib.py
 file.po
 file.mo
 file.pot
+.prettier-cache
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

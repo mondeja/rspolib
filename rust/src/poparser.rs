@@ -436,11 +436,8 @@ impl POFileParser {
 }
 
 fn handle_he(parser: &mut POFileParser) -> Result<(), SyntaxError> {
-    let mut newheader = match parser.file.header {
-        Some(ref header) => header,
-        None => "",
-    }
-    .to_string();
+    let h = parser.file.header.clone();
+    let mut newheader = h.unwrap_or_default().to_string();
     if !newheader.is_empty() {
         newheader.push('\n');
     }
@@ -702,7 +699,7 @@ fn transition_fn_factory(
         St::MX => Ok(&handle_mx),
         St::MC => Ok(&handle_mc),
         _ => Err(SyntaxError::UnknownState {
-            state: format!("{:?}", action),
+            state: format!("{action:?}"),
         }),
     }
 }
@@ -744,7 +741,7 @@ fn maybe_raise_unescaped_double_quote_found_error(
             ),
             line: linenum,
             index: text.chars().count() - 1,
-            message: format!("unterminated string '{}'", text),
+            message: format!("unterminated string '{text}'"),
         });
     }
 
