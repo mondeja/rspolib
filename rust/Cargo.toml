@@ -15,7 +15,7 @@ path = "src/lib.rs"
 
 [dependencies]
 unicode-linebreak = "0.1"
-unicode-width = "0.1"
+unicode-width = ">0.1"
 natord = "1"
 snafu = "0.8"
 lazy_static = "1"
