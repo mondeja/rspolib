@@ -33,4 +33,14 @@ See the documentation at [docs.rs/rspolib](https://docs.rs/rspolib)
 - [Quickstart](https://github.com/mondeja/rspolib/tree/master/python#readme)
 - [Reference](https://github.com/mondeja/rspolib/blob/master/python/REFERENCE.md)
 
+### Usage
+
+```python
+import polib
+import rspolib
+
+rspo = rspolib.pofile(f"{tests_dir}/django-complete.po")
+pypo = polib.pofile(f"{tests_dir}/django-complete.po")
+```
+
 [polib]: https://github.com/izimobil/polib
