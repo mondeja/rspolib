@@ -2,7 +2,8 @@
 
 ## 2025-01-20 - [0.1.1]
 
-Add MSRV.
+- Add MSRV.
+- Add support for Python v3.13.
 
 ## 2024-01-18 - [0.1.0]
 
