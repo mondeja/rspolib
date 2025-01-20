@@ -244,6 +244,7 @@ impl<'a> POStringField<'a> {
     }
 }
 
+#[allow(clippy::needless_lifetimes)]
 impl<'a> fmt::Display for POStringField<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut lines = vec!["".to_string()];
