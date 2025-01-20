@@ -216,8 +216,7 @@ impl MOFileParser<'_> {
                 Err(_e) => {
                     return Err(IOError::CorruptedMOData {
                         context: format!(
-                            "parsing {} length at index {}",
-                            context, i
+                            "parsing {context} length at index {i}",
                         ),
                     })
                 }
@@ -227,8 +226,7 @@ impl MOFileParser<'_> {
                 Err(_e) => {
                     return Err(IOError::CorruptedMOData {
                         context: format!(
-                            "parsing {} offset at index {}",
-                            context, i
+                            "parsing {context} offset at index {i}",
                         ),
                     })
                 }

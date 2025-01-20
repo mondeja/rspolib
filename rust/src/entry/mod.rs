@@ -280,7 +280,7 @@ impl<'a> fmt::Display for POStringField<'a> {
             ret.push_str(&format!("{}\"{}\"\n", self.delflag, &line));
         }
 
-        write!(f, "{}", ret)
+        write!(f, "{ret}")
     }
 }
 

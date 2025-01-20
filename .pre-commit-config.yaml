@@ -17,4 +17,19 @@ repos:
       - id: fmt
       - id: cargo-check
       - id: clippy
-        args: [--, -A, clippy::comparison-chain, -Dwarnings]
+        args:
+          [
+            --,
+            -A,
+            clippy::comparison-chain,
+            -D,
+            warnings,
+            -D,
+            clippy::perf,
+            -D,
+            clippy::print_stdout,
+            -D,
+            clippy::explicit_iter_loop,
+            -D,
+            clippy::uninlined_format_args,
+          ]

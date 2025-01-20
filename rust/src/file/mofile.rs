@@ -348,7 +348,7 @@ impl fmt::Display for MOFile {
             ret.push('\n');
         }
         ret.remove(ret.len() - 1);
-        write!(f, "{}", ret)
+        write!(f, "{ret}")
     }
 }
 

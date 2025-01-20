@@ -699,7 +699,7 @@ fn transition_fn_factory(
         St::MX => Ok(&handle_mx),
         St::MC => Ok(&handle_mc),
         _ => Err(SyntaxError::UnknownState {
-            state: format!("{:?}", action),
+            state: format!("{action:?}"),
         }),
     }
 }
@@ -741,7 +741,7 @@ fn maybe_raise_unescaped_double_quote_found_error(
             ),
             line: linenum,
             index: text.chars().count() - 1,
-            message: format!("unterminated string '{}'", text),
+            message: format!("unterminated string '{text}'"),
         });
     }
 
