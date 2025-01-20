@@ -23,8 +23,8 @@ pub trait Translated {
 /// The MO files spec indicates:
 ///
 /// > Contexts are stored (in MO files) by storing
-/// the concatenation of the context, a EOT byte,
-/// and the original string.
+/// > the concatenation of the context, a EOT byte,
+/// > and the original string.
 ///
 /// This trait provides a way to get the string
 /// representation of `msgid` + `EOT` + `msgctxt`.

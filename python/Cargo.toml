@@ -1,6 +1,6 @@
 [package]
 name = "py-rspolib"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 readme = "README.md"
 description = "Python bindings for the Rust crate rspolib."
@@ -13,5 +13,5 @@ crate-type = ["cdylib"]
 doc = false
 
 [dependencies]
-pyo3 = { version = "0.20.2", features = ["extension-module"] }
+pyo3 = { version = "0.23", features = ["extension-module"] }
 rspolib = { path = "../rust" }

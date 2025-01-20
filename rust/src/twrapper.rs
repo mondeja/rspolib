@@ -7,7 +7,7 @@ use unicode_width::UnicodeWidthChar;
 
 #[allow(clippy::mut_range_bound)]
 fn get_linebreaks(
-    linebreaks: &Vec<(usize, BreakOpportunity)>,
+    linebreaks: &[(usize, BreakOpportunity)],
     text: &str,
     wrapwidth: usize,
 ) -> Vec<usize> {
@@ -55,7 +55,7 @@ fn get_linebreaks(
 /// - `wrapwidth` - Maximum width of a line
 pub(crate) fn wrap(text: &str, wrapwidth: usize) -> Vec<String> {
     let linebreaks = get_linebreaks(
-        &unicode_linebreaks(text).collect(),
+        &unicode_linebreaks(text).collect::<Vec<(usize, unicode_linebreak::BreakOpportunity)>>(),
         text,
         wrapwidth,
     );

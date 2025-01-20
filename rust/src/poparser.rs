@@ -436,11 +436,8 @@ impl POFileParser {
 }
 
 fn handle_he(parser: &mut POFileParser) -> Result<(), SyntaxError> {
-    let mut newheader = match parser.file.header {
-        Some(ref header) => header,
-        None => "",
-    }
-    .to_string();
+    let h = parser.file.header.clone();
+    let mut newheader = h.unwrap_or_default().to_string();
     if !newheader.is_empty() {
         newheader.push('\n');
     }
