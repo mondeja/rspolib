@@ -1592,6 +1592,53 @@ mod tests {
     }
 
     #[test]
+    fn error_when_missing_msgstr_before_next_entry() {
+        let content = concat!(
+            "msgctxt \"context:\"\n",
+            "msgid \"hello\"\n",
+            "\n",
+            "msgctxt \"next:\"\n",
+            "msgid \"foo\"\n",
+            "msgstr \"bar\"\n",
+        );
+        let mut parser = POFileParser::new(content.into());
+        let result = parser.parse();
+
+        assert_eq!(
+            result,
+            Err(SyntaxError::Custom {
+                maybe_filename: MaybeFilename::new(content, false),
+                line: 4,
+                index: 0,
+                message: "missing 'msgstr' section".to_string(),
+            })
+        );
+    }
+
+    #[test]
+    fn error_when_missing_plural_msgstr_before_next_entry() {
+        let content = concat!(
+            "msgid \"hello\"\n",
+            "msgid_plural \"hellos\"\n",
+            "msgctxt \"next:\"\n",
+            "msgid \"foo\"\n",
+            "msgstr \"bar\"\n",
+        );
+        let mut parser = POFileParser::new(content.into());
+        let result = parser.parse();
+
+        assert_eq!(
+            result,
+            Err(SyntaxError::Custom {
+                maybe_filename: MaybeFilename::new(content, false),
+                line: 3,
+                index: 0,
+                message: "missing plural 'msgstr[n]' section".to_string(),
+            })
+        );
+    }
+
+    #[test]
     fn error_when_unclosed_string_delimiter() {
         let path = "tests-data/unclosed-string-delimiter.po";
         let mut parser = POFileParser::new(path.into());
