@@ -1424,6 +1424,10 @@ mod tests {
         parser.parse()?;
 
         assert_eq!(parser.file.entries.len(), 2);
+        assert_eq!(
+            parser.file.entries[1].previous_msgid.as_deref(),
+            Some("Bar baz qux"),
+        );
         Ok(())
     }
 
@@ -1634,6 +1638,27 @@ mod tests {
                 line: 3,
                 index: 0,
                 message: "missing plural 'msgstr[n]' section".to_string(),
+            })
+        );
+    }
+
+    #[test]
+    fn error_when_dangling_previous_continuation_line() {
+        let content = concat!(
+            "#| \"dangling\"\n",
+            "msgid \"foo\"\n",
+            "msgstr \"bar\"\n",
+        );
+        let mut parser = POFileParser::new(content.into());
+        let result = parser.parse();
+
+        assert_eq!(
+            result,
+            Err(SyntaxError::Custom {
+                maybe_filename: MaybeFilename::new(content, false),
+                line: 1,
+                index: 0,
+                message: "invalid previous continuation line".to_string(),
             })
         );
     }
