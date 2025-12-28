@@ -444,6 +444,46 @@ impl POFileParser {
             // Remove the marker and any whitespace following it
             if tokens[1].starts_with('"') {
                 // Continuation of previous metadata
+                if ![St::PM, St::PP, St::PC]
+                    .contains(&self.current_state)
+                {
+                    return Err(SyntaxError::Custom {
+                        message: "invalid previous continuation line"
+                            .to_string(),
+                        maybe_filename: MaybeFilename::new(
+                            &self.file.options.path_or_content,
+                            self.content_is_path,
+                        ),
+                        line: self.current_line,
+                        index: 0,
+                    });
+                }
+
+                let quote_index = match line.find('"') {
+                    Some(index) => index,
+                    None => {
+                        return Err(SyntaxError::Custom {
+                            message:
+                                "invalid previous continuation line"
+                                    .to_string(),
+                            maybe_filename: MaybeFilename::new(
+                                &self.file.options.path_or_content,
+                                self.content_is_path,
+                            ),
+                            line: self.current_line,
+                            index: 0,
+                        });
+                    }
+                };
+                let continuation = &line[quote_index..];
+                maybe_raise_unescaped_double_quote_found_error(
+                    continuation,
+                    self.current_line,
+                    self.content_is_path,
+                    &self.file.options.path_or_content,
+                    quote_index + 1,
+                )?;
+                self.current_token = continuation.to_string();
                 self.process(&St::MC)?;
                 return Ok(());
             }
@@ -1715,7 +1755,7 @@ mod tests {
         assert_eq!(
             result,
             Err(SyntaxError::Custom {
-                maybe_filename: MaybeFilename::new(content, false),
+                maybe_filename: MaybeFilename::new(content, false,),
                 line: 1,
                 index: 0,
                 message: "invalid previous continuation line".to_string(),
