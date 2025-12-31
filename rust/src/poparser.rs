@@ -148,6 +148,50 @@ impl POFileParser {
         Ok(())
     }
 
+    fn missing_msgstr_error(&self, line: usize) -> SyntaxError {
+        SyntaxError::Custom {
+            maybe_filename: MaybeFilename::new(
+                &self.file.options.path_or_content,
+                self.content_is_path,
+            ),
+            line,
+            index: 0,
+            message: "missing 'msgstr' section".to_string(),
+        }
+    }
+
+    fn missing_plural_msgstr_error(
+        &self,
+        line: usize,
+    ) -> SyntaxError {
+        SyntaxError::Custom {
+            maybe_filename: MaybeFilename::new(
+                &self.file.options.path_or_content,
+                self.content_is_path,
+            ),
+            line,
+            index: 0,
+            message: "missing plural 'msgstr[n]' section".to_string(),
+        }
+    }
+
+    fn validate_current_entry_complete(
+        &self,
+        line: usize,
+    ) -> Result<(), SyntaxError> {
+        if self.current_entry.msgstr.is_none()
+            && self.current_entry.msgid_plural.is_none()
+        {
+            return Err(self.missing_msgstr_error(line));
+        }
+        if self.current_entry.msgid_plural.is_some()
+            && self.current_entry.msgstr_plural.is_empty()
+        {
+            return Err(self.missing_plural_msgstr_error(line));
+        }
+        Ok(())
+    }
+
     fn process(
         &mut self,
         symbol: &Symbol,
@@ -210,6 +254,7 @@ impl POFileParser {
                 }
             }
         } else {
+            self.validate_current_entry_complete(self.current_line)?;
             self.add_current_entry()?;
         }
 
@@ -282,6 +327,22 @@ impl POFileParser {
         if nb_tokens > 1 && KEYWORDS.contains_key(&tokens[0]) {
             line = line[tokens[0].len()..].trim_start();
 
+            let symbol = *KEYWORDS.get(&tokens[0]).unwrap();
+            if self.current_state == St::MI
+                && [St::CT, St::MI].contains(symbol)
+            {
+                return Err(
+                    self.missing_msgstr_error(self.current_line),
+                );
+            }
+            if self.current_state == St::MP
+                && [St::CT, St::MI].contains(symbol)
+            {
+                return Err(
+                    self.missing_plural_msgstr_error(self.current_line),
+                );
+            }
+
             maybe_raise_unescaped_double_quote_found_error(
                 line,
                 self.current_line,
@@ -292,7 +353,6 @@ impl POFileParser {
                 tokens[0].chars().count() + 2,
             )?;
             self.current_token = line.to_string();
-            let symbol = *KEYWORDS.get(&tokens[0]).unwrap();
             self.process(symbol)?;
             return Ok(());
         }
@@ -1611,7 +1671,7 @@ mod tests {
         assert_eq!(
             result,
             Err(SyntaxError::Custom {
-                maybe_filename: MaybeFilename::new(content, false),
+                maybe_filename: MaybeFilename::new(content, false,),
                 line: 4,
                 index: 0,
                 message: "missing 'msgstr' section".to_string(),
@@ -1634,7 +1694,7 @@ mod tests {
         assert_eq!(
             result,
             Err(SyntaxError::Custom {
-                maybe_filename: MaybeFilename::new(content, false),
+                maybe_filename: MaybeFilename::new(content, false,),
                 line: 3,
                 index: 0,
                 message: "missing plural 'msgstr[n]' section".to_string(),
