@@ -1654,6 +1654,53 @@ mod tests {
     }
 
     #[test]
+    fn error_when_conflict_marker_found() {
+        let content = concat!(
+            "<<<<<<< HEAD\n",
+            "msgid \"hello\"\n",
+            "msgstr \"ok\"\n",
+            "=======\n",
+            "msgid \"hello\"\n",
+            "msgstr \"maybe\"\n",
+            ">>>>>>> branch\n",
+        );
+        let mut parser = POFileParser::new(content.into());
+        let result = parser.parse();
+
+        assert_eq!(
+            result,
+            Err(SyntaxError::Generic {
+                maybe_filename: MaybeFilename::new(content, false,),
+                line: 1,
+                index: 0,
+            })
+        );
+    }
+
+    #[test]
+    fn error_when_conflict_marker_found_in_entry() {
+        let content = concat!(
+            "msgid \"hello\"\n",
+            "<<<<<<< HEAD\n",
+            "msgstr \"ok\"\n",
+            "=======\n",
+            "msgstr \"maybe\"\n",
+            ">>>>>>> branch\n",
+        );
+        let mut parser = POFileParser::new(content.into());
+        let result = parser.parse();
+
+        assert_eq!(
+            result,
+            Err(SyntaxError::Generic {
+                maybe_filename: MaybeFilename::new(content, false,),
+                line: 2,
+                index: 0,
+            })
+        );
+    }
+
+    #[test]
     fn error_when_non_digit_msgstr_plural_index() {
         let content = concat!(
             "#\n",
