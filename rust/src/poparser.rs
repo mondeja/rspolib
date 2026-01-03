@@ -148,6 +148,10 @@ impl POFileParser {
         Ok(())
     }
 
+    fn entry_started(&self) -> bool {
+        !self.current_entry.msgid.is_empty()
+    }
+
     fn missing_msgstr_error(&self, line: usize) -> SyntaxError {
         SyntaxError::Custom {
             maybe_filename: MaybeFilename::new(
@@ -261,7 +265,7 @@ impl POFileParser {
             self.parse_line(&line)?;
         }
 
-        if self.current_entry.msgid.is_empty() {
+        if !self.entry_started() {
             // Adding header entry
             if let Some(msgstr) = &self.current_entry.msgstr {
                 if !msgstr.is_empty() {
@@ -344,7 +348,7 @@ impl POFileParser {
 
             let symbol = *KEYWORDS.get(&tokens[0]).unwrap();
             if [St::CT, St::MI].contains(symbol)
-                && !self.current_entry.msgid.is_empty()
+                && self.entry_started()
             {
                 self.validate_current_entry_complete(
                     self.current_line,
