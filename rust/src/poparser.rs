@@ -448,14 +448,14 @@ impl POFileParser {
                     .contains(&self.current_state)
                 {
                     return Err(SyntaxError::Custom {
-                        message: "invalid previous continuation line"
-                            .to_string(),
                         maybe_filename: MaybeFilename::new(
                             &self.file.options.path_or_content,
                             self.content_is_path,
                         ),
                         line: self.current_line,
                         index: 0,
+                        message: "invalid previous continuation line"
+                            .to_string(),
                     });
                 }
 
@@ -463,15 +463,15 @@ impl POFileParser {
                     Some(index) => index,
                     None => {
                         return Err(SyntaxError::Custom {
-                            message:
-                                "invalid previous continuation line"
-                                    .to_string(),
                             maybe_filename: MaybeFilename::new(
                                 &self.file.options.path_or_content,
                                 self.content_is_path,
                             ),
                             line: self.current_line,
                             index: 0,
+                            message:
+                                "invalid previous continuation line"
+                                    .to_string(),
                         });
                     }
                 };
