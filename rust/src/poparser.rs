@@ -68,7 +68,7 @@ struct LinesHandler<'a> {
 }
 
 impl LinesHandler<'_> {
-    fn new(handler: &mut dyn Read) -> LinesHandler {
+    fn new(handler: &mut dyn Read) -> LinesHandler<'_> {
         LinesHandler {
             lines: BufReader::new(handler).lines(),
         }

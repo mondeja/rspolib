@@ -490,7 +490,7 @@ impl AsBytes for POFile {
     /// let file = pofile("tests-data/all.po").unwrap();
     /// let bytes = MOFile::from(&file).as_bytes_with(MAGIC_SWAPPED, 1);
     /// ```
-    fn as_bytes(&self) -> Cow<[u8]> {
+    fn as_bytes(&self) -> Cow<'_, [u8]> {
         let mofile = MOFile::from(self);
         let result = mofile.as_bytes_with(MAGIC, 0);
         Cow::Owned(result.into_owned())
@@ -499,13 +499,13 @@ impl AsBytes for POFile {
     /// Return the PO file content as a bytes vector of the MO file version
     ///
     /// Just an alias for [POFile::as_bytes], for consistency with [MOFile].
-    fn as_bytes_le(&self) -> Cow<[u8]> {
+    fn as_bytes_le(&self) -> Cow<'_, [u8]> {
         self.as_bytes()
     }
 
     /// Return the PO file content as a bytes vector of
     /// the MO file version with big endianess
-    fn as_bytes_be(&self) -> Cow<[u8]> {
+    fn as_bytes_be(&self) -> Cow<'_, [u8]> {
         let mofile = MOFile::from(self);
         let result = mofile.as_bytes_with(MAGIC_SWAPPED, 0);
         Cow::Owned(result.into_owned())
