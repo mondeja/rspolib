@@ -107,9 +107,9 @@ jobs:
           args: --release --sdist -o dist --find-interpreter
           working-directory: python
       - name: Upload wheels
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: wheels
+          name: wheels-linux
           path: python/dist
 
   windows-py-wheels:
@@ -124,9 +124,9 @@ jobs:
           args: --release -o dist --find-interpreter
           working-directory: python
       - name: Upload wheels
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: wheels
+          name: wheels-windows
           path: python/dist
 
   macos-py-wheels:
@@ -143,7 +143,7 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: wheels
+          name: wheels-macos
           path: python/dist
 
   test-release-rust-crate:
@@ -190,11 +190,13 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: wheels
+          pattern: wheels-*
+          path: dist
+          merge-multiple: true
       - name: Publish to PyPI
         uses: PyO3/maturin-action@v1
         env:
           MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
         with:
           command: upload
-          args: --skip-existing *
+          args: --skip-existing dist/*
