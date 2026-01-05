@@ -156,11 +156,10 @@ jobs:
         uses: hecrj/setup-rust-action@v2
         with:
           rust-version: stable
-      - name: Publish
+      - name: Package
         run: |
           cd rust
-          cargo login ${{ secrets.CRATES_TOKEN }}
-          cargo publish -v --dry-run
+          cargo package -v
 
   release-rust-crate:
     name: Release Rust crate
@@ -174,9 +173,10 @@ jobs:
         with:
           rust-version: stable
       - name: Publish
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_TOKEN }}
         run: |
           cd rust
-          cargo login ${{ secrets.CRATES_TOKEN }}
           cargo publish -v
 
   release-py-wheels:
