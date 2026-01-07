@@ -57,11 +57,11 @@ pub trait SaveAsMOFile {
 ///   big endian byte order.
 pub trait AsBytes {
     /// Return the content as bytes
-    fn as_bytes(&self) -> Cow<[u8]>;
+    fn as_bytes(&self) -> Cow<'_, [u8]>;
     /// Return the content as bytes in little endian encoding
-    fn as_bytes_le(&self) -> Cow<[u8]>;
+    fn as_bytes_le(&self) -> Cow<'_, [u8]>;
     /// Return the content as bytes in big endian encoding
-    fn as_bytes_be(&self) -> Cow<[u8]>;
+    fn as_bytes_be(&self) -> Cow<'_, [u8]>;
 }
 
 /// File options struct passed when creating a new PO or MO file

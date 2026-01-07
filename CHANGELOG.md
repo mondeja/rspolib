@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 2026-01-08 - [0.1.2]
+
+### Bug fixes
+
+- Incomplete entries (msgctxt/msgid without msgstr) could trigger a panic when a new entry begins.
+- Previous-translation continuation lines (#| "...") could be accepted without a preceding #| msgid/msgctxt/msgid_plural context.
+
 ## 2025-01-20 - [0.1.1]
 
 - Add MSRV.
@@ -14,6 +21,7 @@ First beta release.
 
 Alpha releases.
 
+[0.1.2]: https://github.com/mondeja/rspolib/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/mondeja/rspolib/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/mondeja/rspolib/compare/v0.0.5...v0.1.0
 [0.0.5]: https://github.com/mondeja/rspolib/compare/v0.0.1...v0.0.5

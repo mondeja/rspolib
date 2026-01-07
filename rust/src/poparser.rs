@@ -68,7 +68,7 @@ struct LinesHandler<'a> {
 }
 
 impl LinesHandler<'_> {
-    fn new(handler: &mut dyn Read) -> LinesHandler {
+    fn new(handler: &mut dyn Read) -> LinesHandler<'_> {
         LinesHandler {
             lines: BufReader::new(handler).lines(),
         }
@@ -148,6 +148,69 @@ impl POFileParser {
         Ok(())
     }
 
+    fn entry_started(&self) -> bool {
+        !self.current_entry.msgid.is_empty()
+    }
+
+    fn missing_msgstr_error(&self, line: usize) -> SyntaxError {
+        SyntaxError::Custom {
+            maybe_filename: MaybeFilename::new(
+                &self.file.options.path_or_content,
+                self.content_is_path,
+            ),
+            line,
+            index: 0,
+            message: "missing 'msgstr' section".to_string(),
+        }
+    }
+
+    fn missing_plural_msgstr_error(
+        &self,
+        line: usize,
+    ) -> SyntaxError {
+        SyntaxError::Custom {
+            maybe_filename: MaybeFilename::new(
+                &self.file.options.path_or_content,
+                self.content_is_path,
+            ),
+            line,
+            index: 0,
+            message: "missing plural 'msgstr[n]' section".to_string(),
+        }
+    }
+
+    fn validate_current_entry_complete(
+        &self,
+        line: usize,
+    ) -> Result<(), SyntaxError> {
+        if self.current_entry.msgstr.is_none()
+            && self.current_entry.msgid_plural.is_none()
+        {
+            return Err(self.missing_msgstr_error(line));
+        }
+        if self.current_entry.msgid_plural.is_some()
+            && self.current_entry.msgstr_plural.is_empty()
+        {
+            return Err(self.missing_plural_msgstr_error(line));
+        }
+        Ok(())
+    }
+
+    fn invalid_previous_continuation_error(
+        &self,
+        line: usize,
+    ) -> SyntaxError {
+        SyntaxError::Custom {
+            maybe_filename: MaybeFilename::new(
+                &self.file.options.path_or_content,
+                self.content_is_path,
+            ),
+            line,
+            index: 0,
+            message: "invalid previous continuation line".to_string(),
+        }
+    }
+
     fn process(
         &mut self,
         symbol: &Symbol,
@@ -202,7 +265,7 @@ impl POFileParser {
             self.parse_line(&line)?;
         }
 
-        if self.current_entry.msgid.is_empty() {
+        if !self.entry_started() {
             // Adding header entry
             if let Some(msgstr) = &self.current_entry.msgstr {
                 if !msgstr.is_empty() {
@@ -210,6 +273,7 @@ impl POFileParser {
                 }
             }
         } else {
+            self.validate_current_entry_complete(self.current_line)?;
             self.add_current_entry()?;
         }
 
@@ -282,6 +346,15 @@ impl POFileParser {
         if nb_tokens > 1 && KEYWORDS.contains_key(&tokens[0]) {
             line = line[tokens[0].len()..].trim_start();
 
+            let symbol = *KEYWORDS.get(&tokens[0]).unwrap();
+            if [St::CT, St::MI].contains(symbol)
+                && self.entry_started()
+            {
+                self.validate_current_entry_complete(
+                    self.current_line,
+                )?;
+            }
+
             maybe_raise_unescaped_double_quote_found_error(
                 line,
                 self.current_line,
@@ -292,7 +365,6 @@ impl POFileParser {
                 tokens[0].chars().count() + 2,
             )?;
             self.current_token = line.to_string();
-            let symbol = *KEYWORDS.get(&tokens[0]).unwrap();
             self.process(symbol)?;
             return Ok(());
         }
@@ -384,6 +456,33 @@ impl POFileParser {
             // Remove the marker and any whitespace following it
             if tokens[1].starts_with('"') {
                 // Continuation of previous metadata
+                if ![St::PM, St::PP, St::PC]
+                    .contains(&self.current_state)
+                {
+                    return Err(self
+                        .invalid_previous_continuation_error(
+                            self.current_line,
+                        ));
+                }
+
+                let quote_index = match line.find('"') {
+                    Some(index) => index,
+                    None => {
+                        return Err(self
+                            .invalid_previous_continuation_error(
+                                self.current_line,
+                            ));
+                    }
+                };
+                let continuation = &line[quote_index..];
+                maybe_raise_unescaped_double_quote_found_error(
+                    continuation,
+                    self.current_line,
+                    self.content_is_path,
+                    &self.file.options.path_or_content,
+                    quote_index + 1,
+                )?;
+                self.current_token = continuation.to_string();
                 self.process(&St::MC)?;
                 return Ok(());
             }
@@ -1424,6 +1523,10 @@ mod tests {
         parser.parse()?;
 
         assert_eq!(parser.file.entries.len(), 2);
+        assert_eq!(
+            parser.file.entries[1].previous_msgid.as_deref(),
+            Some("Bar baz qux"),
+        );
         Ok(())
     }
 
@@ -1551,6 +1654,53 @@ mod tests {
     }
 
     #[test]
+    fn error_when_conflict_marker_found() {
+        let content = concat!(
+            "<<<<<<< HEAD\n",
+            "msgid \"hello\"\n",
+            "msgstr \"ok\"\n",
+            "=======\n",
+            "msgid \"hello\"\n",
+            "msgstr \"maybe\"\n",
+            ">>>>>>> branch\n",
+        );
+        let mut parser = POFileParser::new(content.into());
+        let result = parser.parse();
+
+        assert_eq!(
+            result,
+            Err(SyntaxError::Generic {
+                maybe_filename: MaybeFilename::new(content, false,),
+                line: 1,
+                index: 0,
+            })
+        );
+    }
+
+    #[test]
+    fn error_when_conflict_marker_found_in_entry() {
+        let content = concat!(
+            "msgid \"hello\"\n",
+            "<<<<<<< HEAD\n",
+            "msgstr \"ok\"\n",
+            "=======\n",
+            "msgstr \"maybe\"\n",
+            ">>>>>>> branch\n",
+        );
+        let mut parser = POFileParser::new(content.into());
+        let result = parser.parse();
+
+        assert_eq!(
+            result,
+            Err(SyntaxError::Generic {
+                maybe_filename: MaybeFilename::new(content, false,),
+                line: 2,
+                index: 0,
+            })
+        );
+    }
+
+    #[test]
     fn error_when_non_digit_msgstr_plural_index() {
         let content = concat!(
             "#\n",
@@ -1587,6 +1737,192 @@ mod tests {
                 line: 4,
                 index: 0,
                 message: "invalid continuation line".to_string(),
+            })
+        );
+    }
+
+    #[test]
+    fn error_when_missing_msgstr_before_next_entry() {
+        let content = concat!(
+            "msgctxt \"context:\"\n",
+            "msgid \"hello\"\n",
+            "\n",
+            "msgctxt \"next:\"\n",
+            "msgid \"foo\"\n",
+            "msgstr \"bar\"\n",
+        );
+        let mut parser = POFileParser::new(content.into());
+        let result = parser.parse();
+
+        assert_eq!(
+            result,
+            Err(SyntaxError::Custom {
+                maybe_filename: MaybeFilename::new(content, false,),
+                line: 4,
+                index: 0,
+                message: "missing 'msgstr' section".to_string(),
+            })
+        );
+    }
+
+    #[test]
+    fn error_when_missing_msgstr_before_next_entry_with_comment() {
+        let content = concat!(
+            "msgid \"hello\"\n",
+            "# comment\n",
+            "msgid \"next\"\n",
+            "msgstr \"ok\"\n",
+        );
+        let mut parser = POFileParser::new(content.into());
+        let result = parser.parse();
+
+        assert_eq!(
+            result,
+            Err(SyntaxError::Custom {
+                maybe_filename: MaybeFilename::new(content, false,),
+                line: 3,
+                index: 0,
+                message: "missing 'msgstr' section".to_string(),
+            })
+        );
+    }
+
+    #[test]
+    fn error_when_missing_msgstr_before_next_entry_with_generated_comment(
+    ) {
+        let content = concat!(
+            "msgid \"hello\"\n",
+            "#. comment\n",
+            "msgid \"next\"\n",
+            "msgstr \"ok\"\n",
+        );
+        let mut parser = POFileParser::new(content.into());
+        let result = parser.parse();
+
+        assert_eq!(
+            result,
+            Err(SyntaxError::Custom {
+                maybe_filename: MaybeFilename::new(content, false,),
+                line: 3,
+                index: 0,
+                message: "missing 'msgstr' section".to_string(),
+            })
+        );
+    }
+
+    #[test]
+    fn error_when_missing_msgstr_before_next_entry_with_occurrence_comment(
+    ) {
+        let content = concat!(
+            "msgid \"hello\"\n",
+            "#: path.rs:10\n",
+            "msgid \"next\"\n",
+            "msgstr \"ok\"\n",
+        );
+        let mut parser = POFileParser::new(content.into());
+        let result = parser.parse();
+
+        assert_eq!(
+            result,
+            Err(SyntaxError::Custom {
+                maybe_filename: MaybeFilename::new(content, false,),
+                line: 3,
+                index: 0,
+                message: "missing 'msgstr' section".to_string(),
+            })
+        );
+    }
+
+    #[test]
+    fn error_when_missing_msgstr_before_next_entry_with_flags_comment(
+    ) {
+        let content = concat!(
+            "msgid \"hello\"\n",
+            "#, fuzzy\n",
+            "msgid \"next\"\n",
+            "msgstr \"ok\"\n",
+        );
+        let mut parser = POFileParser::new(content.into());
+        let result = parser.parse();
+
+        assert_eq!(
+            result,
+            Err(SyntaxError::Custom {
+                maybe_filename: MaybeFilename::new(content, false,),
+                line: 3,
+                index: 0,
+                message: "missing 'msgstr' section".to_string(),
+            })
+        );
+    }
+
+    #[test]
+    fn error_when_missing_plural_msgstr_before_next_entry() {
+        let content = concat!(
+            "msgid \"hello\"\n",
+            "msgid_plural \"hellos\"\n",
+            "msgctxt \"next:\"\n",
+            "msgid \"foo\"\n",
+            "msgstr \"bar\"\n",
+        );
+        let mut parser = POFileParser::new(content.into());
+        let result = parser.parse();
+
+        assert_eq!(
+            result,
+            Err(SyntaxError::Custom {
+                maybe_filename: MaybeFilename::new(content, false,),
+                line: 3,
+                index: 0,
+                message: "missing plural 'msgstr[n]' section"
+                    .to_string(),
+            })
+        );
+    }
+
+    #[test]
+    fn error_when_missing_plural_msgstr_before_next_entry_with_comment(
+    ) {
+        let content = concat!(
+            "msgid \"hello\"\n",
+            "msgid_plural \"hellos\"\n",
+            "# comment\n",
+            "msgid \"next\"\n",
+            "msgstr \"ok\"\n",
+        );
+        let mut parser = POFileParser::new(content.into());
+        let result = parser.parse();
+
+        assert_eq!(
+            result,
+            Err(SyntaxError::Custom {
+                maybe_filename: MaybeFilename::new(content, false,),
+                line: 4,
+                index: 0,
+                message: "missing plural 'msgstr[n]' section"
+                    .to_string(),
+            })
+        );
+    }
+
+    #[test]
+    fn error_when_dangling_previous_continuation_line() {
+        let content = concat!(
+            "#| \"dangling\"\n",
+            "msgid \"foo\"\n",
+            "msgstr \"bar\"\n",
+        );
+        let mut parser = POFileParser::new(content.into());
+        let result = parser.parse();
+
+        assert_eq!(
+            result,
+            Err(SyntaxError::Custom {
+                maybe_filename: MaybeFilename::new(content, false,),
+                line: 1,
+                index: 0,
+                message: "invalid previous continuation line"
+                    .to_string(),
             })
         );
     }

@@ -219,7 +219,7 @@ impl MOFile {
         &self,
         magic_number: u32,
         revision_number: u32,
-    ) -> Cow<[u8]> {
+    ) -> Cow<'_, [u8]> {
         let metadata_entry = self.metadata_as_entry();
 
         // Select byte order based on magic number
@@ -372,17 +372,17 @@ impl SaveAsMOFile for MOFile {
 
 impl AsBytes for MOFile {
     /// Return the MOFile as a vector of bytes in little endian
-    fn as_bytes(&self) -> Cow<[u8]> {
+    fn as_bytes(&self) -> Cow<'_, [u8]> {
         self.as_bytes_with(MAGIC, 0)
     }
 
     /// Return the MOFile as a vector of bytes in little endian
-    fn as_bytes_le(&self) -> Cow<[u8]> {
+    fn as_bytes_le(&self) -> Cow<'_, [u8]> {
         self.as_bytes_with(MAGIC, 0)
     }
 
     /// Return the MOFile as a vector of bytes in big endian
-    fn as_bytes_be(&self) -> Cow<[u8]> {
+    fn as_bytes_be(&self) -> Cow<'_, [u8]> {
         self.as_bytes_with(MAGIC_SWAPPED, 0)
     }
 }
