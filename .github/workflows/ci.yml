@@ -161,7 +161,7 @@ jobs:
       - name: Publish (dry run)
         run: |
           cd rust
-          cargo package -v --dry-run
+          cargo publish -v --dry-run
 
   release-rust-crate:
     name: Release Rust crate
